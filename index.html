@@ -1,0 +1,1447 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#1d4ed8" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="实验报告工具" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <title>建筑结构检测技术实验报告工具</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #64748b;
+      --line: #cbd5e1;
+      --paper: #ffffff;
+      --bg: #eef2f7;
+      --accent: #1d4ed8;
+      --accent-soft: #dbeafe;
+      --ok: #047857;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --panel: #f8fafc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.65;
+      letter-spacing: 0;
+    }
+
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(248, 250, 252, 0.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(10px);
+    }
+
+    .header-inner {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .brand {
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.2;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .global-actions,
+    .report-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    button,
+    .file-label {
+      border: 1px solid #94a3b8;
+      background: #ffffff;
+      color: #0f172a;
+      padding: 6px 10px;
+      min-height: 34px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.ghost {
+      border-color: transparent;
+      background: transparent;
+    }
+
+    button:hover,
+    .file-label:hover {
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+    }
+
+    .layout {
+      max-width: 1220px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 82px;
+      align-self: start;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      max-height: calc(100vh - 100px);
+      overflow: auto;
+    }
+
+    .nav-btn {
+      width: 100%;
+      text-align: left;
+      border: 0;
+      background: transparent;
+      padding: 9px 10px;
+      border-radius: 6px;
+      color: #334155;
+      white-space: normal;
+      line-height: 1.35;
+    }
+
+    .nav-btn.active {
+      background: var(--accent-soft);
+      color: #1e40af;
+      font-weight: 700;
+    }
+
+    .report-page {
+      display: none;
+      width: min(100%, 210mm);
+      min-height: 297mm;
+      margin: 0 auto 22px;
+      padding: 18mm 16mm;
+      background: var(--paper);
+      border: 1px solid #d7dee8;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.09);
+    }
+
+    .report-page.active { display: block; }
+
+    .report-title {
+      text-align: center;
+      margin: 0 0 18px;
+      font-size: 22px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .experiment-title {
+      text-align: center;
+      margin: 0 0 16px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px 14px;
+      margin: 12px 0 18px;
+      align-items: end;
+    }
+
+    .meta-grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    label.field {
+      display: grid;
+      grid-template-columns: auto minmax(80px, 1fr);
+      gap: 6px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid #94a3b8;
+      padding: 4px 5px;
+      min-height: 30px;
+      font: inherit;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    input[type="number"] { text-align: center; }
+
+    textarea {
+      min-height: 92px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fcfdff;
+    }
+
+    select {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+
+    .section {
+      margin: 18px 0;
+      break-inside: avoid;
+    }
+
+    .section h3 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+
+    .prefilled {
+      margin: 0;
+      padding: 10px 12px;
+      border-left: 3px solid var(--accent);
+      background: #f8fafc;
+      white-space: pre-wrap;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px;
+      min-height: 34px;
+      text-align: center;
+      vertical-align: middle;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    th {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+
+    td input,
+    th input {
+      border: 0;
+      padding: 2px;
+      min-height: 24px;
+      background: transparent;
+      text-align: center;
+    }
+
+    .wide-scroll {
+      overflow-x: auto;
+      margin: 10px 0;
+    }
+
+    .wide-scroll table {
+      min-width: 820px;
+      margin: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .result-box {
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      white-space: pre-wrap;
+    }
+
+    .canvas-wrap {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+      margin: 10px 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 280px;
+    }
+
+    .upload-preview {
+      min-height: 130px;
+      border: 1px dashed #94a3b8;
+      background: #f8fafc;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      padding: 10px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .upload-preview img {
+      max-width: 100%;
+      max-height: 260px;
+      display: block;
+    }
+
+    .small-input { max-width: 110px; }
+    .status { color: var(--ok); font-size: 13px; min-height: 20px; }
+    .danger { color: var(--bad); }
+    .warn { color: var(--warn); }
+    .ok { color: var(--ok); }
+
+    @media (max-width: 920px) {
+      .header-inner,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .global-actions,
+      .report-actions {
+        justify-content: flex-start;
+      }
+
+      .sidebar {
+        position: static;
+        max-height: none;
+      }
+
+      .report-page {
+        padding: 12mm 7mm;
+      }
+
+      .meta-grid,
+      .meta-grid.two {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .app-header,
+      .sidebar,
+      .report-actions,
+      .toolbar,
+      .file-label,
+      .note.no-print { display: none !important; }
+      .layout {
+        display: block;
+        max-width: none;
+        padding: 0;
+      }
+      .report-page,
+      .report-page.active {
+        display: block;
+        width: 210mm;
+        min-height: 297mm;
+        box-shadow: none;
+        border: 0;
+        page-break-after: always;
+      }
+      input,
+      textarea,
+      select {
+        border-color: #888;
+      }
+      .prefilled,
+      .result-box {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <h1>建筑结构检测技术实验报告</h1>
+        <p>预习内容已按指导书填写，实验后输入数据即可计算、画图、打印。</p>
+      </div>
+      <div class="global-actions">
+        <button class="primary" id="saveAllBtn">保存全部</button>
+        <button id="loadDemoBtn">填入示例数据</button>
+        <button id="clearCurrentBtn">清空当前实验数据</button>
+        <button id="printBtn">打印/另存为 PDF</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar" id="nav"></aside>
+    <section id="reports"></section>
+  </main>
+
+  <template id="commonMetaTemplate">
+    <div class="meta-grid">
+      <label class="field">学号 <input data-key="studentId"></label>
+      <label class="field">姓名 <input data-key="studentName"></label>
+      <label class="field">专业、班 <input data-key="className"></label>
+      <label class="field">实验地点 <input data-key="place"></label>
+      <label class="field">指导老师 <input data-key="teacher"></label>
+      <label class="field">试验日期 <input data-key="date" placeholder="年 月 日"></label>
+    </div>
+  </template>
+
+  <script>
+    const APP_KEY = "building-structure-lab-report-v1";
+
+    const experiments = [
+      { id: "rebound", title: "回弹法检测混凝土抗压强度" },
+      { id: "ultrasonic", title: "超声法检测混凝土缺陷" },
+      { id: "gps", title: "工程测量的 GPS 技术" },
+      { id: "radar", title: "混凝土内部缺陷无损检测" },
+      { id: "crack", title: "裂缝深度及宽度检测实验" },
+      { id: "lining", title: "衬砌背部空洞检测实验" },
+      { id: "carbonation", title: "碳化深度测定实验" },
+      { id: "cover", title: "钢筋保护层厚度检测实验" },
+      { id: "pile", title: "基桩完整性检测实验" },
+      { id: "bridge", title: "桥梁动静载实验" }
+    ];
+
+    const prefill = {
+      ultrasonic: {
+        principle: "超声脉冲波在混凝土中传播时，遇到空洞、不密实区或裂缝会发生绕射、反射、散射和衰减，使声时、声速、波幅、主频和波形产生变化。检测时在相同条件下比较各测点声学参数，若某一区域声速降低、声时增大、波幅或频率明显降低，可判断该区域可能存在缺陷。",
+        paper: "超声法检测混凝土缺陷是一种无损检测方法。其基本思想是利用超声波在混凝土中的传播特性判断内部质量。当混凝土均匀密实时，声速、波幅和主频等参数变化较小；当内部存在空洞、不密实或裂缝时，声波传播路径变长，能量衰减加大，接收信号波幅降低，主频下降，波形也可能发生畸变。因此，通过布置换能器并测量声时、波幅和频率，可分析缺陷的位置、范围和性质。检测前应清理测试面并保证耦合良好，测点布置应避开与声波传播方向一致的主钢筋。"
+      },
+      gps: {
+        purpose: "了解 GPS 系统组成、差分定位原理和工程测量中的基本操作流程；掌握基准站、流动站的架设与测量/放样方法。",
+        equipment: "GPS 接收机、手簿、对中杆、三脚架、测高尺、蓝牙或 USB 连接设备；应选择开阔区域，减少遮挡和多路径影响。",
+        principle: "GPS 由空间卫星、地面监控系统和用户接收机组成。接收机通过测量卫星信号到达时间，计算用户到卫星的距离，并结合卫星位置解算测站坐标。为提高精度，工程测量常采用差分 GPS：基准站在已知点观测并计算改正数，流动站接收改正数后修正定位结果。载波相位差分 RTK 可达到厘米级定位精度。",
+        steps: "1. 在已知控制点架设基准站，对中、整平并量取仪器高。\n2. 打开 GPS 和手簿，完成蓝牙或 USB 连接，输入控制点坐标、仪器高和坐标系参数。\n3. 架设流动站，输入对中杆高度并选择测量或放样功能。\n4. 测量时将流动站置于待测点采集坐标；放样时输入设计坐标，根据手簿提示移动至目标位置。\n5. 保存测量数据，检查固定解状态和观测质量。"
+      },
+      radar: {
+        purpose: "熟悉手持雷达的特点和测试方法，了解利用雷达法检测混凝土内部钢筋、空洞和缺陷位置的基本过程。",
+        equipment: "MJ-105 手持式雷达或同类无损检测设备。测试表面应平整、清洁，仪器参数应根据构件厚度和探测目标设置。",
+        principle: "雷达法依据材料电磁特性差异进行检测。仪器从混凝土表面向内部发射电磁波，当电磁波遇到钢筋、空洞或不同介质界面时会产生反射，接收天线采集反射信号并形成图像，由反射波形和位置判断内部目标或缺陷。",
+        steps: "1. 确定被测区域和仪器行走方向。\n2. 设置测量参数，包括量程、介质波速、采样参数等。\n3. 使仪器沿测试方向缓慢、匀速移动。\n4. 仪器自动存储扫描数据。\n5. 对波形图像进行处理，识别钢筋、空洞或异常反射位置。"
+      },
+      lining: {
+        purpose: "了解地质雷达的工作原理和特点，掌握衬砌背部空洞检测方法，判断衬砌背后是否存在空洞及其位置和规模。",
+        equipment: "地质雷达主机、天线、采集软件和运行设备。系统增益不低于 150dB，信噪比不低于 60dB，采样间隔一般不大于 0.5ns；天线最大探测深度应大于 2m，垂直分辨率宜高于 2cm。",
+        principle: "地质雷达利用天线发射高频宽频带电磁波，并接收地下或衬砌内部介质界面的反射波。电磁波传播路径、幅度和波形随介质电性和几何形态变化。根据反射波的双程走时、幅度和波形，可推断衬砌背部空洞的位置和范围。",
+        steps: "1. 连接并检查主机、天线和运行设备。\n2. 启动采集软件，选择天线驱动并设置时窗、采样点数、电磁波速度等参数。\n3. 进行增益标定，并新建测区和采集文件。\n4. 沿预计路径拖动天线进行扫描，必要时添加位置标记和用户标记。\n5. 保存数据，查看雷达剖面图并分析空洞反射特征。"
+      },
+      carbonation: {
+        q1: "混凝土碳化会降低混凝土孔隙溶液碱度，使钢筋失去碱性保护环境，增加钢筋锈蚀风险。回弹法检测混凝土强度时，碳化会使混凝土表面硬度提高，若不修正会影响强度推定结果。",
+        q2: "影响碳化的因素包括环境因素、原材料因素和施工养护因素。空气中二氧化碳、二氧化硫、酸雨、湿度等会影响碳化速度；水泥品种、骨料和粉料含量、水灰比、外加剂也会影响碳化；振捣不密实、养护不足会使孔隙增多，加速空气和水分进入混凝土内部。",
+        steps: "测区应具有代表性且均匀布置，每一测区布置三个测孔并呈“品”字形。用冲击钻钻孔后清除粉末，露出新鲜混凝土面，喷洒 1%-2% 酚酞酒精溶液。待颜色稳定后，用测深卡尺测量混凝土表面至酚酞变色交界处的深度，精确至 1mm，并记录最大值、最小值和平均值。"
+      },
+      cover: {
+        purpose: "掌握电磁感应法检测钢筋位置、钢筋间距和保护层厚度的方法，能够根据实测保护层厚度进行耐久性评定。",
+        equipment: "钢筋保护层厚度检测仪，包括探头、仪表和连接导线。仪器应能在温度 0-40℃、相对湿度不大于 85%、无强磁场干扰条件下工作。",
+        steps: "1. 检查仪器显示和电池电量。\n2. 检查混凝土表面平整清洁，查看图纸并设置钢筋直径和间距。\n3. 沿垂直钢筋方向匀速移动探头，根据信号强度和蜂鸣提示初步确定钢筋位置。\n4. 避开箍筋、横向钢筋、接头和绑丝，在相邻钢筋影响较小位置测读保护层厚度。\n5. 同一位置重复检测，记录保护层厚度实测值。\n6. 根据平均值、标准差、特征值和设计值比值进行评定。"
+      },
+      pile: {
+        purpose: "掌握声波透射法检测混凝土灌注桩桩身完整性的基本过程，能够根据声速、波幅、主频等声学参数判断异常测点和缺陷位置。",
+        equipment: "声波发射与接收换能器、声波检测仪、声测管、清水等。换能器应为圆柱状径向振动，谐振频率宜为 30-50kHz；检测仪应能实时显示和记录时程曲线、频率或频谱。",
+        steps: "1. 检测前确定仪器系统延迟时间，计算声测管及耦合水层声时修正值。\n2. 测量声测管外壁间净距离，并检查声测管畅通情况。\n3. 将发射和接收换能器置于两根声测管中同一标高或固定高差位置，同步升降。\n4. 测点间距不应大于 250mm，逐点记录声时、首波峰值、周期和主频。\n5. 对所有检测剖面完成检测，可疑区域加密测点或进行斜测、扇形扫测。\n6. 绘制声速-深度、波幅-深度和主频-深度曲线，综合判定桩身完整性类别。"
+      },
+      bridge: {
+        staticPurpose: "通过静载试验掌握 T 型梁模型在分级荷载作用下的应变和挠度响应，比较理论值与实测值，分析结构工作状态。",
+        dynamicPurpose: "通过动载试验测定桥梁模型的动力响应，识别结构自振频率、阻尼比、动应变幅值和冲击系数。",
+        equipment: "无线静态应变测试系统、静态应变测试系统、无线动态应变测试分析系统、百分表或位移计、加载设备、动态传感器及采集软件。",
+        scheme: "静载试验采用跨中集中荷载，分 3 级加载，示例累计荷载为 12kN、24kN、36kN。每级加载完成后持荷并读取应变和挠度。动载试验可采用脉动测试和跑车试验，采集跨中动态响应和动应变信号，并进行 FFT 分析。"
+      }
+    };
+
+    const state = loadState();
+    let activeId = state.activeId || experiments[0].id;
+
+    function loadState() {
+      try {
+        return JSON.parse(localStorage.getItem(APP_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveState() {
+      collectInputs();
+      state.activeId = activeId;
+      localStorage.setItem(APP_KEY, JSON.stringify(state));
+      setStatus(activeId, "已保存到浏览器本地。");
+    }
+
+    function collectInputs(root = document) {
+      root.querySelectorAll("[data-key]").forEach(el => {
+        const page = el.closest(".report-page");
+        if (!page) return;
+        const id = page.dataset.id;
+        state[id] ||= {};
+        if (el.type === "file") return;
+        state[id][el.dataset.key] = el.value;
+      });
+    }
+
+    function hydrateInputs(root = document) {
+      root.querySelectorAll("[data-key]").forEach(el => {
+        const page = el.closest(".report-page");
+        if (!page) return;
+        const id = page.dataset.id;
+        const value = state[id]?.[el.dataset.key];
+        if (value !== undefined) el.value = value;
+      });
+    }
+
+    function setStatus(id, text) {
+      const el = document.querySelector(`[data-status-for="${id}"]`);
+      if (el) {
+        el.textContent = text;
+        setTimeout(() => {
+          if (el.textContent === text) el.textContent = "";
+        }, 2600);
+      }
+    }
+
+    function input(key, type = "text", attrs = "") {
+      return `<input ${type ? `type="${type}"` : ""} data-key="${key}" ${attrs}>`;
+    }
+
+    function textarea(key, placeholder = "", rows = 4) {
+      return `<textarea data-key="${key}" rows="${rows}" placeholder="${placeholder}"></textarea>`;
+    }
+
+    function commonMeta() {
+      return `
+        <div class="meta-grid">
+          <label class="field">学号 ${input("studentId")}</label>
+          <label class="field">姓名 ${input("studentName")}</label>
+          <label class="field">专业、班 ${input("className")}</label>
+          <label class="field">实验地点 ${input("place")}</label>
+          <label class="field">指导老师 ${input("teacher")}</label>
+          <label class="field">试验日期 ${input("date", "text", 'placeholder="年 月 日"')}</label>
+        </div>`;
+    }
+
+    function actions(id) {
+      return `
+        <div class="report-actions no-print">
+          <button class="primary" data-action="calc" data-id="${id}">计算/刷新图表</button>
+          <button data-action="save" data-id="${id}">保存本实验数据</button>
+          <button data-action="csv" data-id="${id}">导出本实验结果 CSV</button>
+          <button data-action="png" data-id="${id}">导出图表 PNG</button>
+          <span class="status" data-status-for="${id}"></span>
+        </div>`;
+    }
+
+    function prefilled(text) {
+      return `<p class="prefilled">${escapeHtml(text)}</p>`;
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function buildNav() {
+      const nav = document.getElementById("nav");
+      nav.innerHTML = experiments.map((exp, index) =>
+        `<button class="nav-btn ${exp.id === activeId ? "active" : ""}" data-nav="${exp.id}">${index + 1}. ${exp.title}</button>`
+      ).join("");
+    }
+
+    function buildReports() {
+      const reports = document.getElementById("reports");
+      reports.innerHTML = [
+        renderRebound(),
+        renderUltrasonic(),
+        renderGps(),
+        renderRadar(),
+        renderCrack(),
+        renderLining(),
+        renderCarbonation(),
+        renderCover(),
+        renderPile(),
+        renderBridge()
+      ].join("");
+      hydrateInputs();
+      showExperiment(activeId);
+      wireUploads();
+    }
+
+    function page(id, title, body) {
+      return `
+        <article class="report-page ${id === activeId ? "active" : ""}" data-id="${id}">
+          <h2 class="experiment-title">《建筑结构检测技术》实验报告<br>实验项目名称：${title}</h2>
+          ${commonMeta()}
+          ${actions(id)}
+          ${body}
+        </article>`;
+    }
+
+    function renderRebound() {
+      const rows = Array.from({ length: 16 }, (_, r) => `
+        <tr><th>${r + 1}</th>${Array.from({ length: 10 }, (_, c) => `<td>${input(`r_${r}_${c}`, "number", 'step="0.1"')}</td>`).join("")}</tr>
+      `).join("");
+      const calcRows = ["回弹平均值", "角度修正值", "浇筑面修正值", "碳化深度值", "泵送修正值", "强度换算值"].map((label, r) => `
+        <tr><th>${label}</th>${Array.from({ length: 10 }, (_, c) => `<td>${input(`rebound_calc_${r}_${c}`, "number", 'step="0.1"')}</td>`).join("")}</tr>
+      `).join("");
+      return page("rebound", "回弹法检测混凝土抗压强度", `
+        <div class="meta-grid two">
+          <label class="field">实验室温度 ${input("temperature")}</label>
+          <label class="field">湿度 ${input("humidity")}</label>
+          <label class="field">设备名称 ${input("deviceName", "text", 'value="中型直射锤击式回弹仪"')}</label>
+          <label class="field">设备型号 ${input("deviceModel")}</label>
+          <label class="field">设备精度 ${input("devicePrecision")}</label>
+          <label class="field">量程 ${input("deviceRange")}</label>
+          <label class="field">试件名称 ${input("sampleName")}</label>
+          <label class="field">碳化深度平均值 ${input("carbonationAvg", "number", 'step="0.1"')} mm</label>
+        </div>
+        <div class="section"><h3>1、试验设备</h3>${prefilled("中型回弹仪用于通过弹击混凝土表面获得回弹值，并结合碳化深度推算混凝土抗压强度。检测前后应在钢砧上率定，率定值宜为 80±2。")}</div>
+        <div class="section"><h3>2、试件名称</h3>${textarea("sampleDescription", "填写构件或试件名称、尺寸、检测位置。", 2)}</div>
+        <div class="section"><h3>3、碳化深度</h3>${prefilled("回弹值测量完毕后，应在有代表性的位置测量碳化深度。测点数不应少于构件测区数的 30%；当碳化深度大于 2.0mm 时，应在每一测区测量。")}</div>
+        <div class="section">
+          <h3>3、原始记录</h3>
+          <div class="wide-scroll"><table>
+            <tr><th>测点编号 / 测区编号</th>${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>
+            ${rows}
+          </table></div>
+        </div>
+        <div class="section">
+          <h3>4、强度计算表</h3>
+          <div class="toolbar">
+            <label>测试角度
+              <select data-key="angle">
+                <option value="0">水平 0°</option><option value="90">向上 +90°</option><option value="60">向上 +60°</option><option value="45">向上 +45°</option><option value="30">向上 +30°</option>
+                <option value="-30">向下 -30°</option><option value="-45">向下 -45°</option><option value="-60">向下 -60°</option><option value="-90">向下 -90°</option>
+              </select>
+            </label>
+            <label>浇筑面
+              <select data-key="pourFace"><option value="side">侧面</option><option value="top">顶面</option><option value="bottom">底面</option></select>
+            </label>
+            <label>芯样/试件修正系数 ${input("coreFactor", "number", 'step="0.001" placeholder="默认 1" class="small-input"')}</label>
+          </div>
+          <div class="wide-scroll"><table>
+            <tr><th>测区编号</th>${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>
+            ${calcRows}
+          </table></div>
+          <p class="note">说明：强度换算值可按课程给定测强曲线查表后填入；本工具自动完成回弹平均、修正汇总、强度均值、标准差和推定值计算。</p>
+        </div>
+        <div class="section"><h3>5-7、计算过程与结果</h3><div class="result-box" id="reboundResult">待输入实验数据。</div></div>
+        <div class="section"><h3>8、请回答：为什么要对回弹值进行角度修正？</h3>${prefilled("回弹仪在非水平方向弹击时，弹击锤运动会受到重力分量影响，同一混凝土表面硬度下读数会随测试角度变化。为使不同角度测得的回弹值可与水平测试条件下的测强曲线对应，必须进行角度修正。")}</div>
+        <div class="canvas-wrap"><canvas id="reboundChart" width="900" height="330"></canvas></div>
+      `);
+    }
+
+    function renderUltrasonic() {
+      return page("ultrasonic", "超声法检测混凝土缺陷", `
+        <div class="section"><h3>自行查阅资料，用简单的语言及草图描述超声法检测混凝土缺陷的原理，形成一篇小论文。</h3>${prefilled(prefill.ultrasonic.paper)}</div>
+        <div class="section"><h3>原理要点</h3>${prefilled(prefill.ultrasonic.principle)}</div>
+        <div class="section"><h3>草图/现场图</h3>${uploadBlock("ultrasonic")}</div>
+        <div class="section"><h3>补充记录</h3>${textarea("notes", "实验后填写测点布置、异常区域、波形观察等。")}</div>
+      `);
+    }
+
+    function renderGps() {
+      return page("gps", "工程测量的 GPS 技术", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled(prefill.gps.purpose)}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled(prefill.gps.equipment)}</div>
+        <div class="section"><h3>三、工程测量的 GPS 的原理</h3>${prefilled(prefill.gps.principle)}</div>
+        <div class="section"><h3>四、工程测量的 GPS 的步骤</h3>${prefilled(prefill.gps.steps)}</div>
+        <div class="section"><h3>现场数据/测点记录</h3>${textarea("gpsData", "实验后填写测点编号、坐标、固定解状态、备注等。")}</div>
+        <div class="section"><h3>草图/照片</h3>${uploadBlock("gps")}</div>
+      `);
+    }
+
+    function renderRadar() {
+      return page("radar", "混凝土内部缺陷无损检测", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled(prefill.radar.purpose)}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled(prefill.radar.equipment)}</div>
+        <div class="section"><h3>三、手持雷达混凝土背部缺陷无损检测的原理</h3>${prefilled(prefill.radar.principle)}</div>
+        <div class="section"><h3>四、手持雷达混凝土背部缺陷无损检测的使用步骤</h3>${prefilled(prefill.radar.steps)}</div>
+        <div class="section"><h3>检测图像/记录</h3>${uploadBlock("radar")}${textarea("radarNotes", "实验后填写异常反射、缺陷位置、深度估计等。")}</div>
+      `);
+    }
+
+    function renderCrack() {
+      const rows = Array.from({ length: 6 }, (_, i) => `
+        <tr><th>${i + 1}</th><td>${input(`crack_l_${i}`, "number", 'step="0.1"')}</td><td>${input(`crack_tn_${i}`, "number", 'step="0.1"')}</td><td>${input(`crack_tc_${i}`, "number", 'step="0.1"')}</td><td class="calc-cell" data-crack-h="${i}"></td></tr>
+      `).join("");
+      return page("crack", "裂缝深度及宽度检测实验", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled("了解超声仪的组成、工作原理和使用方法；掌握超声单面平测法检测混凝土裂缝深度的基本原理、步骤和数据处理方法。")}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled("超声仪、直尺、黄油等耦合剂。裂缝中不得充水或泥浆，测点布置应避开与换能器连线平行且影响明显的主钢筋。")}</div>
+        <div class="section"><h3>三、裂缝深度检测的主要实验步骤</h3>${prefilled("1. 调试超声仪，选择裂缝深度检测功能。\n2. 不跨缝测试：将两个探头置于裂缝同侧，按设定测距逐点采样声时。\n3. 跨缝测试：将两个探头等距置于裂缝两侧，按相同测距逐点采样声时。\n4. 根据不跨缝声时求声速，根据跨缝声时计算裂缝深度。\n5. 绘制声时-测距关系和裂缝深度结果图。")}</div>
+        <div class="section">
+          <h3>实验数据</h3>
+          <table>
+            <tr><th>序号</th><th>测距 l / mm</th><th>不跨缝声时 t / μs</th><th>跨缝声时 t0 / μs</th><th>裂缝深度 h / mm</th></tr>
+            ${rows}
+          </table>
+        </div>
+        <div class="section"><h3>计算结果</h3><div class="result-box" id="crackResult">待输入实验数据。</div></div>
+        <div class="canvas-wrap"><canvas id="crackChart" width="900" height="330"></canvas></div>
+        <div class="section"><h3>裂缝宽度记录</h3>${textarea("crackWidth", "实验后填写裂缝宽度、位置、走向、照片编号。")}</div>
+        <div class="section"><h3>草图/现场图</h3>${uploadBlock("crack")}</div>
+      `);
+    }
+
+    function renderLining() {
+      return page("lining", "衬砌背部空洞检测", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled(prefill.lining.purpose)}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled(prefill.lining.equipment)}</div>
+        <div class="section"><h3>三、地质雷达衬砌背部空洞检测的原理</h3>${prefilled(prefill.lining.principle)}</div>
+        <div class="section"><h3>四、地质雷达衬砌背部空洞检测的使用步骤</h3>${prefilled(prefill.lining.steps)}</div>
+        <div class="section"><h3>雷达图谱/现场图</h3>${uploadBlock("lining")}${textarea("liningNotes", "实验后填写测线号、方向、标记间隔、空洞位置和规模。")}</div>
+      `);
+    }
+
+    function renderCarbonation() {
+      const rows = Array.from({ length: 6 }, (_, i) => `
+        <tr><th>测区 ${i + 1}</th><td>${input(`carb_${i}_0`, "number", 'step="0.1"')}</td><td>${input(`carb_${i}_1`, "number", 'step="0.1"')}</td><td>${input(`carb_${i}_2`, "number", 'step="0.1"')}</td><td class="calc-cell" data-carb-avg="${i}"></td></tr>
+      `).join("");
+      return page("carbonation", "碳化深度测定实验", `
+        <div class="section"><h3>一、碳化对混凝土强度有何影响</h3>${prefilled(prefill.carbonation.q1)}</div>
+        <div class="section"><h3>二、影响混凝土碳化的因素有哪些</h3>${prefilled(prefill.carbonation.q2)}</div>
+        <div class="section"><h3>三、简述碳化深度测定的主要实验步骤，并记录你测得的碳化深度值。</h3>${prefilled(prefill.carbonation.steps)}</div>
+        <table>
+          <tr><th>测区</th><th>测孔 1 / mm</th><th>测孔 2 / mm</th><th>测孔 3 / mm</th><th>平均值 / mm</th></tr>
+          ${rows}
+        </table>
+        <div class="result-box" id="carbonationResult">待输入实验数据。</div>
+        <div class="canvas-wrap"><canvas id="carbonationChart" width="900" height="300"></canvas></div>
+      `);
+    }
+
+    function renderCover() {
+      const rows = Array.from({ length: 15 }, (_, i) => `
+        <tr><th>${i + 1}</th><td>${input(`cover_pos_${i}`, "text")}</td><td>${input(`cover_d_${i}`, "number", 'step="0.1"')}</td><td>${input(`cover_note_${i}`, "text")}</td></tr>
+      `).join("");
+      return page("cover", "钢筋保护层厚度检测实验", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled(prefill.cover.purpose)}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled(prefill.cover.equipment)}</div>
+        <div class="section"><h3>三、试验步骤</h3>${prefilled(prefill.cover.steps)}</div>
+        <div class="section">
+          <h3>检测数据</h3>
+          <div class="toolbar"><label>设计保护层厚度 Dnd / mm ${input("cover_design", "number", 'step="0.1" class="small-input"')}</label></div>
+          <table><tr><th>测点</th><th>位置/轴线</th><th>实测保护层厚度 / mm</th><th>备注</th></tr>${rows}</table>
+        </div>
+        <div class="section"><h3>评定结果</h3><div class="result-box" id="coverResult">待输入实验数据。</div></div>
+        <div class="canvas-wrap"><canvas id="coverChart" width="900" height="300"></canvas></div>
+      `);
+    }
+
+    function renderPile() {
+      const rows = Array.from({ length: 16 }, (_, i) => `
+        <tr><th>${i + 1}</th><td>${input(`pile_z_${i}`, "number", 'step="0.01"')}</td><td>${input(`pile_t_${i}`, "number", 'step="0.1"')}</td><td>${input(`pile_a_${i}`, "number", 'step="0.001"')}</td><td>${input(`pile_T_${i}`, "number", 'step="0.1"')}</td><td data-pile-v="${i}"></td><td data-pile-Ap="${i}"></td><td data-pile-f="${i}"></td></tr>
+      `).join("");
+      return page("pile", "基桩完整性检测实验", `
+        <div class="section"><h3>一、实验目的及要求</h3>${prefilled(prefill.pile.purpose)}</div>
+        <div class="section"><h3>二、实验设备（环境）及要求</h3>${prefilled(prefill.pile.equipment)}</div>
+        <div class="section"><h3>三、试验步骤</h3>${prefilled(prefill.pile.steps)}</div>
+        <div class="section">
+          <h3>检测数据</h3>
+          <div class="toolbar">
+            <label>测距 l' / mm ${input("pile_l", "number", 'step="0.1" class="small-input"')}</label>
+            <label>系统延迟 t0 / μs ${input("pile_t0", "number", 'step="0.1" class="small-input"')}</label>
+            <label>修正声时 t' / μs ${input("pile_tp", "number", 'step="0.1" class="small-input"')}</label>
+            <label>零分贝幅值 a0 / V ${input("pile_a0", "number", 'step="0.001" class="small-input" placeholder="默认 1"')}</label>
+          </div>
+          <div class="wide-scroll"><table><tr><th>测点</th><th>深度 z / m</th><th>声时 ti / μs</th><th>首波峰值 ai / V</th><th>周期 Ti / μs</th><th>声速 v / km/s</th><th>波幅 Ap / dB</th><th>主频 f / kHz</th></tr>${rows}</table></div>
+        </div>
+        <div class="section"><h3>数据分析与判定</h3><div class="result-box" id="pileResult">待输入实验数据。</div></div>
+        <div class="canvas-wrap"><canvas id="pileChart" width="900" height="390"></canvas></div>
+      `);
+    }
+
+    function renderBridge() {
+      const staticRows = [1, 2, 3].map((level, i) => `
+        <tr><th>${level} 级荷载</th><td>${input(`bridge_load_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_defl_${i}`, "number", 'step="0.001"')}</td><td>${input(`bridge_theory_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_theory_defl_${i}`, "number", 'step="0.001"')}</td></tr>
+      `).join("");
+      const dynamicRows = [1, 2, 3].map((level, i) => `
+        <tr><th>第 ${level} 次</th><td>${input(`dyn_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`dyn_defl_${i}`, "number", 'step="0.001"')}</td><td>${input(`dyn_freq_${i}`, "number", 'step="0.01"')}</td><td>${input(`dyn_damping_${i}`, "number", 'step="0.0001"')}</td></tr>
+      `).join("");
+      return page("bridge", "桥梁动静载实验", `
+        <div class="section"><h3>桥梁动静载实验之一：静载试验</h3></div>
+        <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.staticPurpose)}</div>
+        <div class="section"><h3>二、实验设备及构件名称</h3>${prefilled(prefill.bridge.equipment)}${textarea("bridgeMember", "填写构件名称、尺寸和加载设备。", 2)}</div>
+        <div class="section"><h3>三、结构简图及实验方案设计（草图及文字说明）</h3>${prefilled(prefill.bridge.scheme)}${uploadBlock("bridgeStatic")}</div>
+        <div class="section"><h3>四、画出构件截面简图并标注尺寸，计算截面的中性轴及惯性矩。</h3>${textarea("bridgeSection", "实验后填写截面尺寸、中性轴和惯性矩计算过程。")}</div>
+        <div class="section">
+          <h3>五、实验数据</h3>
+          <table><tr><th>加载等级</th><th>荷载 / kN</th><th>应变测量值 / με</th><th>挠度测量值 / mm</th><th>理论应变 / με</th><th>理论挠度 / mm</th></tr>${staticRows}</table>
+        </div>
+        <div class="section"><h3>六、计算各测点在最大级荷载下的理论应力值、理论应变值</h3><div class="result-box" id="bridgeStaticResult">待输入实验数据。</div></div>
+        <div class="section"><h3>七、分析以上理论值和实测值误差产生的原因</h3>${prefilled("误差可能来自加载位置偏差、支座实际约束与理论模型不一致、材料弹性模量差异、仪器读数误差、传感器粘贴质量、构件初始缺陷、温度影响和加载持荷时间不足等。实验后应结合实测误差大小进一步分析。")}</div>
+        <div class="canvas-wrap"><canvas id="bridgeStaticChart" width="900" height="330"></canvas></div>
+        <div class="section"><h3>桥梁动静载实验之二：动载试验</h3></div>
+        <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.dynamicPurpose)}</div>
+        <div class="section"><h3>二、实验设备及软件</h3>${prefilled("东华动态信号采集分析系统或同类动态测试系统、竖向拾振器、动态应变计、采集电脑及分析软件。")}</div>
+        <div class="section"><h3>三、加载方式、测点布置和步骤</h3>${textarea("bridgeDynamicScheme", "填写动载加载方式、测点布置、跑车或脉动测试步骤。")}${uploadBlock("bridgeDynamic")}</div>
+        <div class="section">
+          <h3>四、实验结果及分析</h3>
+          <table><tr><th>试验次数</th><th>应变测量幅值 / με</th><th>挠度测量幅值 / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table>
+          <label>时程数据（每行：时间,应变）${textarea("timeSeries", "例如：\n0,0\n0.02,12\n0.04,-8", 6)}</label>
+          <label>FFT 数据（每行：频率,幅值）${textarea("fftSeries", "例如：\n5,0.2\n18.49,1.5\n30,0.4", 6)}</label>
+        </div>
+        <div class="section"><h3>五、思考与计算</h3><div class="result-box" id="bridgeDynamicResult">待输入实验数据。</div></div>
+        <div class="canvas-wrap"><canvas id="bridgeDynamicChart" width="900" height="360"></canvas></div>
+      `);
+    }
+
+    function uploadBlock(id) {
+      return `
+        <label class="file-label no-print">插入图片/草图 <input type="file" accept="image/*" data-upload="${id}" hidden></label>
+        <div class="upload-preview" data-preview="${id}">可在此插入现场照片、仪器图谱或手绘草图</div>
+      `;
+    }
+
+    function showExperiment(id) {
+      activeId = id;
+      document.querySelectorAll(".report-page").forEach(page => page.classList.toggle("active", page.dataset.id === id));
+      document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.toggle("active", btn.dataset.nav === id));
+      calculate(id);
+    }
+
+    function valuesFor(prefix, count, mapper = i => `${prefix}_${i}`) {
+      return Array.from({ length: count }, (_, i) => num(value(mapper(i)))).filter(Number.isFinite);
+    }
+
+    function value(key, id = activeId) {
+      const el = document.querySelector(`.report-page[data-id="${id}"] [data-key="${key}"]`);
+      return el ? el.value.trim() : "";
+    }
+
+    function setValue(key, val, id = activeId) {
+      const el = document.querySelector(`.report-page[data-id="${id}"] [data-key="${key}"]`);
+      if (el) el.value = val;
+    }
+
+    function num(v) {
+      if (v === "" || v === null || v === undefined) return NaN;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : NaN;
+    }
+
+    function mean(arr) {
+      const data = arr.filter(Number.isFinite);
+      return data.length ? data.reduce((a, b) => a + b, 0) / data.length : NaN;
+    }
+
+    function sampleStd(arr) {
+      const data = arr.filter(Number.isFinite);
+      if (data.length < 2) return NaN;
+      const m = mean(data);
+      return Math.sqrt(data.reduce((s, x) => s + (x - m) ** 2, 0) / (data.length - 1));
+    }
+
+    function fmt(n, digits = 2) {
+      return Number.isFinite(n) ? n.toFixed(digits) : "";
+    }
+
+    function round1(n) { return Number.isFinite(n) ? Math.round(n * 10) / 10 : NaN; }
+
+    const angleTable = {
+      20: { "90": -6, "60": -5, "45": -4, "30": -3, "-30": 2.5, "-45": 3, "-60": 3.5, "-90": 4 },
+      30: { "90": -5, "60": -4, "45": -3.5, "30": -2.5, "-30": 2, "-45": 2.5, "-60": 3, "-90": 3.5 },
+      40: { "90": -4, "60": -3.5, "45": -3, "30": -2, "-30": 1.5, "-45": 2, "-60": 2.5, "-90": 3 },
+      50: { "90": -3.5, "60": -3, "45": -2.5, "30": -1.5, "-30": 1, "-45": 1.5, "-60": 2, "-90": 2.5 }
+    };
+
+    const faceTable = {
+      top: { 20: 2.5, 25: 2, 30: 1.5, 35: 1, 40: 0.5, 45: 0, 50: 0 },
+      bottom: { 20: -3, 25: -2.5, 30: -2, 35: -1.5, 40: -1, 45: -0.5, 50: 0 }
+    };
+
+    function interpTable(table, x, key) {
+      if (!Number.isFinite(x) || !key || key === "0") return 0;
+      const xs = Object.keys(table).map(Number).sort((a, b) => a - b);
+      const pick = mark => {
+        const item = table[mark];
+        return typeof item === "number" ? item : (item?.[key] ?? 0);
+      };
+      if (x <= xs[0]) return pick(xs[0]);
+      if (x >= xs[xs.length - 1]) return pick(xs[xs.length - 1]);
+      for (let i = 1; i < xs.length; i++) {
+        if (x <= xs[i]) {
+          const x0 = xs[i - 1], x1 = xs[i];
+          const y0 = pick(x0), y1 = pick(x1);
+          return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+        }
+      }
+      return 0;
+    }
+
+    function calculate(id = activeId) {
+      collectInputs();
+      const map = {
+        rebound: calcRebound,
+        crack: calcCrack,
+        carbonation: calcCarbonation,
+        cover: calcCover,
+        pile: calcPile,
+        bridge: calcBridge
+      };
+      if (map[id]) map[id]();
+      else drawEmpty(`${id}Chart`, "本实验以报告填写和图片记录为主。");
+    }
+
+    function calcRebound() {
+      const page = document.querySelector('[data-id="rebound"]');
+      const angle = value("angle", "rebound") || "0";
+      const face = value("pourFace", "rebound") || "side";
+      const coreFactor = num(value("coreFactor", "rebound")) || 1;
+      const strengths = [];
+      const reboundMeans = [];
+      for (let c = 0; c < 10; c++) {
+        const vals = Array.from({ length: 16 }, (_, r) => num(value(`r_${r}_${c}`, "rebound"))).filter(Number.isFinite);
+        let rm = NaN;
+        if (vals.length >= 10) {
+          const sorted = [...vals].sort((a, b) => a - b);
+          rm = round1(mean(sorted.slice(3, -3)));
+          setValue(`rebound_calc_0_${c}`, fmt(rm, 1), "rebound");
+          reboundMeans.push(rm);
+        }
+        const angleFix = interpTable(angleTable, rm, angle);
+        if (Number.isFinite(rm)) setValue(`rebound_calc_1_${c}`, fmt(angleFix, 1), "rebound");
+        const afterAngle = Number.isFinite(rm) ? rm + angleFix : NaN;
+        const faceFix = face === "side" ? 0 : interpTable(faceTable[face], afterAngle, afterAngle ? face : "");
+        if (Number.isFinite(rm)) setValue(`rebound_calc_2_${c}`, fmt(faceFix, 1), "rebound");
+        const carb = num(value(`rebound_calc_3_${c}`, "rebound"));
+        if (!Number.isFinite(carb)) {
+          const avgCarb = num(value("carbonationAvg", "rebound"));
+          if (Number.isFinite(avgCarb)) setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
+        }
+        const pump = num(value(`rebound_calc_4_${c}`, "rebound"));
+        const f = num(value(`rebound_calc_5_${c}`, "rebound"));
+        const correctedF = Number.isFinite(f) ? f * coreFactor + (Number.isFinite(pump) ? pump : 0) : NaN;
+        if (Number.isFinite(correctedF)) strengths.push(correctedF);
+      }
+      const avg = mean(strengths);
+      const sd = sampleStd(strengths);
+      const minF = strengths.length ? Math.min(...strengths) : NaN;
+      let estimate = NaN;
+      let rule = "";
+      if (strengths.some(v => v < 10)) {
+        rule = "存在测区强度换算值小于 10.0MPa，强度推定值记为 < 10.0MPa。";
+      } else if (strengths.length > 0 && strengths.length < 10) {
+        estimate = minF;
+        rule = "测区数少于 10 个，强度推定值取最小测区强度换算值。";
+      } else if (strengths.length >= 10) {
+        estimate = avg - 1.645 * sd;
+        rule = "测区数不少于 10 个，强度推定值 = 平均值 - 1.645 × 标准差。";
+      }
+      document.getElementById("reboundResult").textContent = strengths.length
+        ? `有效强度换算值数量：${strengths.length}\n混凝土强度换算值平均值：${fmt(avg, 1)} MPa\n标准差：${fmt(sd, 2)} MPa\n最小强度换算值：${fmt(minF, 1)} MPa\n${rule}\n强度推定值：${strengths.some(v => v < 10) ? "< 10.0 MPa" : fmt(estimate, 1) + " MPa"}\n\n计算说明：每测区 16 个回弹值剔除 3 个最大值和 3 个最小值，余下 10 个取平均；非水平测试先角度修正，再按浇筑顶面/底面修正。强度换算值按课程测强曲线查表后填入，本工具负责统计计算。`
+        : "待输入每测区回弹值和强度换算值。";
+      drawLineChart("reboundChart", [
+        { name: "回弹平均值", data: reboundMeans.map((y, i) => ({ x: i + 1, y })) },
+        { name: "强度换算值", data: strengths.map((y, i) => ({ x: i + 1, y })) }
+      ], "测区编号", "数值");
+      return strengths.map((v, i) => ({ 测区: i + 1, 强度换算值: fmt(v, 2) }));
+    }
+
+    function calcCrack() {
+      const rows = [];
+      for (let i = 0; i < 6; i++) {
+        const l = num(value(`crack_l_${i}`, "crack"));
+        const tn = num(value(`crack_tn_${i}`, "crack"));
+        const tc = num(value(`crack_tc_${i}`, "crack"));
+        if (Number.isFinite(l) && Number.isFinite(tn)) rows.push({ i, l, tn, tc });
+      }
+      const valid = rows.filter(r => Number.isFinite(r.l) && Number.isFinite(r.tn));
+      let velocity = NaN;
+      if (valid.length >= 2) {
+        const first = valid[0], last = valid[valid.length - 1];
+        velocity = (last.l - first.l) / (last.tn - first.tn);
+      }
+      const depths = [];
+      rows.forEach(r => {
+        let h = NaN;
+        if (Number.isFinite(velocity) && Number.isFinite(r.tc) && r.l > 0) {
+          const term = (r.tc * velocity / r.l) ** 2 - 1;
+          h = term >= 0 ? r.l / 2 * Math.sqrt(term) : NaN;
+        }
+        const cell = document.querySelector(`[data-crack-h="${r.i}"]`);
+        if (cell) cell.textContent = fmt(h, 1);
+        if (Number.isFinite(h)) depths.push(h);
+      });
+      const avgH = mean(depths);
+      document.getElementById("crackResult").textContent = depths.length
+        ? `不跨缝平测声速：${fmt(velocity, 3)} mm/μs（约 ${fmt(velocity, 3)} km/s）\n各测点裂缝深度平均值：${fmt(avgH, 1)} mm\n计算公式：hci = li / 2 × √[(ti0 × v / li)^2 - 1]\n结论：该裂缝深度可暂取 ${fmt(avgH, 1)} mm，最终应结合首波反相情况和异常数据剔除要求确定。`
+        : "待输入不跨缝、跨缝声时和测距。";
+      drawLineChart("crackChart", [
+        { name: "不跨缝声时", data: rows.filter(r => Number.isFinite(r.tn)).map(r => ({ x: r.l, y: r.tn })) },
+        { name: "跨缝声时", data: rows.filter(r => Number.isFinite(r.tc)).map(r => ({ x: r.l, y: r.tc })) },
+        { name: "裂缝深度", data: depths.map((y, i) => ({ x: rows[i]?.l ?? i + 1, y })) }
+      ], "测距 / mm", "声时 μs 或深度 mm");
+      return rows.map(r => ({ 测距: r.l, 不跨缝声时: r.tn, 跨缝声时: r.tc }));
+    }
+
+    function calcCarbonation() {
+      const avgs = [];
+      const all = [];
+      for (let i = 0; i < 6; i++) {
+        const vals = [0, 1, 2].map(j => num(value(`carb_${i}_${j}`, "carbonation"))).filter(Number.isFinite);
+        const avg = mean(vals);
+        const cell = document.querySelector(`[data-carb-avg="${i}"]`);
+        if (cell) cell.textContent = fmt(avg, 1);
+        if (Number.isFinite(avg)) avgs.push({ x: i + 1, y: avg });
+        all.push(...vals);
+      }
+      document.getElementById("carbonationResult").textContent = all.length
+        ? `碳化深度最大值：${fmt(Math.max(...all), 1)} mm\n碳化深度最小值：${fmt(Math.min(...all), 1)} mm\n碳化深度平均值：${fmt(mean(all), 1)} mm\n记录说明：酚酞未变色处为已碳化混凝土，测量值精确至 1mm。`
+        : "待输入碳化深度测孔值。";
+      drawBarChart("carbonationChart", avgs, "测区", "平均碳化深度 / mm");
+      return avgs.map(p => ({ 测区: p.x, 平均值: fmt(p.y, 1) }));
+    }
+
+    function calcCover() {
+      const design = num(value("cover_design", "cover"));
+      const vals = valuesFor("cover_d", 15, i => `cover_d_${i}`);
+      const n = vals.length;
+      const avg = mean(vals);
+      const sd = sampleStd(vals);
+      const kp = n >= 25 ? 0.595 : n >= 16 ? 1.645 : n >= 10 ? 1.695 : NaN;
+      const dne = avg - kp * sd;
+      const ratio = dne / design;
+      let scale = "", effect = "";
+      if (Number.isFinite(ratio)) {
+        if (ratio > 0.95) [scale, effect] = ["1", "影响不显著"];
+        else if (ratio > 0.85) [scale, effect] = ["2", "有轻度影响"];
+        else if (ratio > 0.70) [scale, effect] = ["3", "有影响"];
+        else if (ratio > 0.55) [scale, effect] = ["4", "有较大影响"];
+        else [scale, effect] = ["5", "钢筋易失去碱性保护，发生锈蚀"];
+      }
+      document.getElementById("coverResult").textContent = vals.length
+        ? `测点数 n：${n}\n平均保护层厚度 Dn：${fmt(avg, 1)} mm\n实测标准差 SD：${fmt(sd, 1)} mm\n判定系数 Kp：${Number.isFinite(kp) ? kp : "测点数少于 10，需补充测点"}\n特征值 Dne：${fmt(dne, 1)} mm\nDne / Dnd：${fmt(ratio, 3)}\n评定标度：${scale || "待输入设计值或补充测点"} ${effect}`
+        : "待输入钢筋保护层厚度实测值。";
+      drawBarChart("coverChart", vals.map((y, i) => ({ x: i + 1, y })), "测点", "保护层厚度 / mm", Number.isFinite(design) ? design : undefined);
+      return vals.map((v, i) => ({ 测点: i + 1, 保护层厚度: fmt(v, 1) }));
+    }
+
+    function calcPile() {
+      const l = num(value("pile_l", "pile"));
+      const t0 = num(value("pile_t0", "pile")) || 0;
+      const tp = num(value("pile_tp", "pile")) || 0;
+      const a0 = num(value("pile_a0", "pile")) || 1;
+      const rows = [];
+      for (let i = 0; i < 16; i++) {
+        const z = num(value(`pile_z_${i}`, "pile"));
+        const ti = num(value(`pile_t_${i}`, "pile"));
+        const ai = num(value(`pile_a_${i}`, "pile"));
+        const T = num(value(`pile_T_${i}`, "pile"));
+        if ([z, ti].some(Number.isFinite)) {
+          const tc = ti - t0 - tp;
+          const v = Number.isFinite(l) && tc > 0 ? l / tc : NaN;
+          const Ap = ai > 0 && a0 > 0 ? 20 * Math.log10(ai / a0) : NaN;
+          const f = T > 0 ? 1000 / T : NaN;
+          rows.push({ i, z, ti, tc, v, Ap, f });
+          setCell(`[data-pile-v="${i}"]`, fmt(v, 2));
+          setCell(`[data-pile-Ap="${i}"]`, fmt(Ap, 2));
+          setCell(`[data-pile-f="${i}"]`, fmt(f, 2));
+        }
+      }
+      const vs = rows.map(r => r.v).filter(Number.isFinite);
+      const aps = rows.map(r => r.Ap).filter(Number.isFinite);
+      const vc = vs.length >= 2 ? mean(vs) - 1.645 * sampleStd(vs) : NaN;
+      const am = mean(aps);
+      const abnormalV = rows.filter(r => Number.isFinite(vc) && r.v <= vc);
+      const abnormalA = rows.filter(r => Number.isFinite(am) && r.Ap < am - 6);
+      document.getElementById("pileResult").textContent = rows.length
+        ? `有效测点数：${rows.length}\n平均声速：${fmt(mean(vs), 2)} km/s\n声速异常判断参考值 vc：${fmt(vc, 2)} km/s\n平均波幅 Am：${fmt(am, 2)} dB，波幅异常阈值 Am-6：${fmt(am - 6, 2)} dB\n声速异常测点：${abnormalV.map(r => r.i + 1).join("、") || "未见明显异常"}\n波幅异常测点：${abnormalA.map(r => r.i + 1).join("、") || "未见明显异常"}\n初步判定：${abnormalV.length || abnormalA.length ? "存在可疑测点，应结合波形、PSD、主频和加密测试综合判定桩身完整性类别。" : "各声学参数未见明显异常，可暂按完整性较好记录。"}`
+        : "待输入基桩声测数据。";
+      drawLineChart("pileChart", [
+        { name: "声速 v", data: rows.filter(r => Number.isFinite(r.v)).map(r => ({ x: r.z, y: r.v })) },
+        { name: "波幅 Ap", data: rows.filter(r => Number.isFinite(r.Ap)).map(r => ({ x: r.z, y: r.Ap })) },
+        { name: "主频 f", data: rows.filter(r => Number.isFinite(r.f)).map(r => ({ x: r.z, y: r.f })) }
+      ], "深度 / m", "声学参数");
+      return rows;
+    }
+
+    function setCell(selector, text) {
+      const el = document.querySelector(selector);
+      if (el) el.textContent = text;
+    }
+
+    function calcBridge() {
+      const staticRows = [];
+      for (let i = 0; i < 3; i++) {
+        const load = num(value(`bridge_load_${i}`, "bridge"));
+        const strain = num(value(`bridge_strain_${i}`, "bridge"));
+        const defl = num(value(`bridge_defl_${i}`, "bridge"));
+        const ts = num(value(`bridge_theory_strain_${i}`, "bridge"));
+        const td = num(value(`bridge_theory_defl_${i}`, "bridge"));
+        if ([load, strain, defl, ts, td].some(Number.isFinite)) staticRows.push({ i, load, strain, defl, ts, td });
+      }
+      const last = staticRows[staticRows.length - 1];
+      const strainErr = last && Number.isFinite(last.ts) && last.ts !== 0 ? (last.strain - last.ts) / last.ts * 100 : NaN;
+      const deflErr = last && Number.isFinite(last.td) && last.td !== 0 ? (last.defl - last.td) / last.td * 100 : NaN;
+      document.getElementById("bridgeStaticResult").textContent = staticRows.length
+        ? `最大级荷载：${fmt(last.load, 1)} kN\n实测应变：${fmt(last.strain, 1)} με，理论应变：${fmt(last.ts, 1)} με，应变误差：${fmt(strainErr, 2)}%\n实测挠度：${fmt(last.defl, 3)} mm，理论挠度：${fmt(last.td, 3)} mm，挠度误差：${fmt(deflErr, 2)}%\n理论应力可按 σ = Eε 计算；C40 混凝土弹性模量可取 32.5GPa，具体以课堂要求为准。`
+        : "待输入静载实验数据。";
+      drawLineChart("bridgeStaticChart", [
+        { name: "实测应变", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.strain)).map(r => ({ x: r.load, y: r.strain })) },
+        { name: "理论应变", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.ts)).map(r => ({ x: r.load, y: r.ts })) },
+        { name: "实测挠度", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.defl)).map(r => ({ x: r.load, y: r.defl })) }
+      ], "荷载 / kN", "应变 με 或挠度 mm");
+
+      const dynRows = [];
+      for (let i = 0; i < 3; i++) {
+        const strain = num(value(`dyn_strain_${i}`, "bridge"));
+        const defl = num(value(`dyn_defl_${i}`, "bridge"));
+        const freq = num(value(`dyn_freq_${i}`, "bridge"));
+        const damping = num(value(`dyn_damping_${i}`, "bridge"));
+        if ([strain, defl, freq, damping].some(Number.isFinite)) dynRows.push({ i, strain, defl, freq, damping });
+      }
+      const freqs = dynRows.map(r => r.freq).filter(Number.isFinite);
+      const theoryF = 18.49;
+      const fAvg = mean(freqs);
+      const fErr = (fAvg - theoryF) / theoryF * 100;
+      document.getElementById("bridgeDynamicResult").textContent = dynRows.length || parseSeries(value("timeSeries", "bridge")).length || parseSeries(value("fftSeries", "bridge")).length
+        ? `理论一阶基频：${theoryF.toFixed(2)} Hz\n实测频率平均值：${fmt(fAvg, 2)} Hz\n频率误差：${fmt(fErr, 2)}%\n冲击系数可按 μ = 动挠度幅值 / 静挠度值 或课程指定公式计算；请结合跑车试验静、动态响应峰值填写。\n阻尼会消耗振动能量并影响结构振幅和振动衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座、连接构造、铺装层、栏杆附属结构和土-结构相互作用等。`
+        : "待输入动载实验数据。";
+      const time = parseSeries(value("timeSeries", "bridge"));
+      const fft = parseSeries(value("fftSeries", "bridge"));
+      drawLineChart("bridgeDynamicChart", [
+        { name: "跨中应变时程", data: time.map(p => ({ x: p[0], y: p[1] })) },
+        { name: "FFT 幅值", data: fft.map(p => ({ x: p[0], y: p[1] })) }
+      ], "时间 s 或频率 Hz", "应变 / 幅值");
+      return [...staticRows, ...dynRows];
+    }
+
+    function parseSeries(text) {
+      return String(text || "").split(/\n+/).map(line => line.trim()).filter(Boolean).map(line => {
+        const parts = line.split(/[\s,，;；]+/).map(Number);
+        return parts.length >= 2 && parts.every(Number.isFinite) ? [parts[0], parts[1]] : null;
+      }).filter(Boolean);
+    }
+
+    function drawEmpty(canvasId, text = "待输入实验数据") {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#f8fafc";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#64748b";
+      ctx.font = "24px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+
+    function drawLineChart(canvasId, series, xLabel, yLabel) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const clean = series.map(s => ({ ...s, data: s.data.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)) })).filter(s => s.data.length);
+      if (!clean.length) return drawEmpty(canvasId);
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      const pad = { l: 70, r: 22, t: 34, b: 58 };
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, W, H);
+      const xs = clean.flatMap(s => s.data.map(p => p.x));
+      const ys = clean.flatMap(s => s.data.map(p => p.y));
+      let xmin = Math.min(...xs), xmax = Math.max(...xs), ymin = Math.min(...ys), ymax = Math.max(...ys);
+      if (xmin === xmax) { xmin -= 1; xmax += 1; }
+      if (ymin === ymax) { ymin -= 1; ymax += 1; }
+      const yPad = (ymax - ymin) * 0.12;
+      ymin -= yPad; ymax += yPad;
+      const sx = x => pad.l + (x - xmin) / (xmax - xmin) * (W - pad.l - pad.r);
+      const sy = y => H - pad.b - (y - ymin) / (ymax - ymin) * (H - pad.t - pad.b);
+      drawAxes(ctx, W, H, pad, xLabel, yLabel, xmin, xmax, ymin, ymax);
+      const colors = ["#1d4ed8", "#047857", "#b45309", "#b91c1c", "#7c3aed"];
+      clean.forEach((s, idx) => {
+        ctx.strokeStyle = colors[idx % colors.length];
+        ctx.fillStyle = colors[idx % colors.length];
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        s.data.forEach((p, i) => {
+          const x = sx(p.x), y = sy(p.y);
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        s.data.forEach(p => {
+          ctx.beginPath();
+          ctx.arc(sx(p.x), sy(p.y), 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.fillText(s.name, pad.l + idx * 145, 20);
+      });
+    }
+
+    function drawBarChart(canvasId, data, xLabel, yLabel, reference) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const clean = data.filter(p => Number.isFinite(p.y));
+      if (!clean.length) return drawEmpty(canvasId);
+      const ctx = canvas.getContext("2d");
+      const W = canvas.width, H = canvas.height;
+      const pad = { l: 70, r: 22, t: 34, b: 58 };
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, W, H);
+      const ys = clean.map(p => p.y).concat(Number.isFinite(reference) ? [reference] : []);
+      const ymax = Math.max(...ys) * 1.25 || 1;
+      const ymin = 0;
+      drawAxes(ctx, W, H, pad, xLabel, yLabel, 1, clean.length, ymin, ymax);
+      const innerW = W - pad.l - pad.r;
+      const barW = Math.max(18, innerW / clean.length * 0.56);
+      clean.forEach((p, i) => {
+        const cx = pad.l + (i + 0.5) / clean.length * innerW;
+        const y = H - pad.b - (p.y - ymin) / (ymax - ymin) * (H - pad.t - pad.b);
+        ctx.fillStyle = "#1d4ed8";
+        ctx.fillRect(cx - barW / 2, y, barW, H - pad.b - y);
+        ctx.fillStyle = "#334155";
+        ctx.textAlign = "center";
+        ctx.fillText(String(p.x), cx, H - 34);
+      });
+      if (Number.isFinite(reference)) {
+        const ry = H - pad.b - (reference - ymin) / (ymax - ymin) * (H - pad.t - pad.b);
+        ctx.strokeStyle = "#b91c1c";
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pad.l, ry);
+        ctx.lineTo(W - pad.r, ry);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#b91c1c";
+        ctx.fillText("设计值", W - pad.r - 40, ry - 6);
+      }
+    }
+
+    function drawAxes(ctx, W, H, pad, xLabel, yLabel, xmin, xmax, ymin, ymax) {
+      ctx.strokeStyle = "#94a3b8";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, pad.t);
+      ctx.lineTo(pad.l, H - pad.b);
+      ctx.lineTo(W - pad.r, H - pad.b);
+      ctx.stroke();
+      ctx.fillStyle = "#475569";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(xLabel, W / 2, H - 14);
+      ctx.save();
+      ctx.translate(18, H / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(yLabel, 0, 0);
+      ctx.restore();
+      ctx.textAlign = "right";
+      for (let i = 0; i <= 4; i++) {
+        const y = H - pad.b - i / 4 * (H - pad.t - pad.b);
+        const val = ymin + i / 4 * (ymax - ymin);
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.beginPath();
+        ctx.moveTo(pad.l, y);
+        ctx.lineTo(W - pad.r, y);
+        ctx.stroke();
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(fmt(val, 1), pad.l - 8, y + 4);
+      }
+      ctx.textAlign = "center";
+      for (let i = 0; i <= 4; i++) {
+        const x = pad.l + i / 4 * (W - pad.l - pad.r);
+        const val = xmin + i / 4 * (xmax - xmin);
+        ctx.fillStyle = "#64748b";
+        ctx.fillText(fmt(val, 1), x, H - pad.b + 20);
+      }
+    }
+
+    function exportCsv(id) {
+      calculate(id);
+      collectInputs();
+      const page = document.querySelector(`[data-id="${id}"]`);
+      const rows = [["字段", "值"]];
+      page.querySelectorAll("[data-key]").forEach(el => {
+        if (el.type !== "file") rows.push([el.dataset.key, el.value]);
+      });
+      page.querySelectorAll(".result-box").forEach((el, idx) => rows.push([`result_${idx + 1}`, el.textContent]));
+      const csv = rows.map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
+      downloadBlob(`${id}-实验数据.csv`, "\ufeff" + csv, "text/csv;charset=utf-8");
+    }
+
+    function exportPng(id) {
+      calculate(id);
+      const canvas = document.querySelector(`.report-page[data-id="${id}"] canvas`);
+      if (!canvas) return setStatus(id, "本实验暂无图表。");
+      const link = document.createElement("a");
+      link.download = `${id}-图表.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    }
+
+    function downloadBlob(name, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function wireUploads() {
+      document.querySelectorAll("[data-upload]").forEach(input => {
+        input.addEventListener("change", () => {
+          const file = input.files?.[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const id = input.dataset.upload;
+            state.uploads ||= {};
+            state.uploads[id] = reader.result;
+            renderUploadPreview(id, reader.result);
+            localStorage.setItem(APP_KEY, JSON.stringify(state));
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+      Object.entries(state.uploads || {}).forEach(([id, src]) => renderUploadPreview(id, src));
+    }
+
+    function renderUploadPreview(id, src) {
+      const preview = document.querySelector(`[data-preview="${id}"]`);
+      if (preview) preview.innerHTML = `<img alt="上传图片" src="${src}">`;
+    }
+
+    function fillDemoData() {
+      const id = activeId;
+      if (id === "rebound") {
+        for (let c = 0; c < 10; c++) {
+          for (let r = 0; r < 16; r++) setValue(`r_${r}_${c}`, 32 + c * 0.6 + (r % 5) * 0.7, "rebound");
+          setValue(`rebound_calc_3_${c}`, 1.5, "rebound");
+          setValue(`rebound_calc_4_${c}`, 0, "rebound");
+          setValue(`rebound_calc_5_${c}`, 28 + c * 0.8, "rebound");
+        }
+      } else if (id === "carbonation") {
+        for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) setValue(`carb_${i}_${j}`, (1.2 + i * 0.2 + j * 0.1).toFixed(1), "carbonation");
+      } else if (id === "cover") {
+        setValue("cover_design", 35, "cover");
+        for (let i = 0; i < 15; i++) setValue(`cover_d_${i}`, (33 + (i % 6) * 0.8).toFixed(1), "cover");
+      } else if (id === "crack") {
+        [100, 110, 120, 130, 140, 150].forEach((l, i) => {
+          setValue(`crack_l_${i}`, l, "crack");
+          setValue(`crack_tn_${i}`, (l / 4.2 + 2).toFixed(1), "crack");
+          setValue(`crack_tc_${i}`, (Math.sqrt(l * l + 4 * 55 * 55) / 4.2 + 2).toFixed(1), "crack");
+        });
+      } else if (id === "pile") {
+        setValue("pile_l", 800, "pile"); setValue("pile_t0", 2, "pile"); setValue("pile_tp", 1, "pile"); setValue("pile_a0", 1, "pile");
+        for (let i = 0; i < 16; i++) {
+          setValue(`pile_z_${i}`, (i * 0.25).toFixed(2), "pile");
+          setValue(`pile_t_${i}`, (190 + (i === 8 ? 20 : i % 3)).toFixed(1), "pile");
+          setValue(`pile_a_${i}`, (0.9 - (i === 8 ? 0.45 : i * 0.01)).toFixed(3), "pile");
+          setValue(`pile_T_${i}`, (55 + i % 4).toFixed(1), "pile");
+        }
+      } else if (id === "bridge") {
+        [12, 24, 36].forEach((load, i) => {
+          setValue(`bridge_load_${i}`, load, "bridge");
+          setValue(`bridge_strain_${i}`, [35, 68, 101][i], "bridge");
+          setValue(`bridge_defl_${i}`, [0.4, 0.82, 1.23][i], "bridge");
+          setValue(`bridge_theory_strain_${i}`, [34, 65, 98][i], "bridge");
+          setValue(`bridge_theory_defl_${i}`, [0.4, 0.8, 1.2][i], "bridge");
+          setValue(`dyn_strain_${i}`, [18, 21, 19][i], "bridge");
+          setValue(`dyn_defl_${i}`, [0.18, 0.22, 0.2][i], "bridge");
+          setValue(`dyn_freq_${i}`, [18.3, 18.6, 18.4][i], "bridge");
+          setValue(`dyn_damping_${i}`, [0.025, 0.026, 0.024][i], "bridge");
+        });
+        setValue("timeSeries", "0,0\n0.02,12\n0.04,18\n0.06,3\n0.08,-13\n0.10,-18\n0.12,-4\n0.14,11\n0.16,17", "bridge");
+        setValue("fftSeries", "5,0.2\n10,0.3\n18.49,1.8\n29.44,0.7\n43.92,0.4", "bridge");
+      }
+      calculate(id);
+      saveState();
+    }
+
+    function clearCurrent() {
+      const page = document.querySelector(`[data-id="${activeId}"]`);
+      page.querySelectorAll("[data-key]").forEach(el => { if (el.type !== "file") el.value = ""; });
+      if (state[activeId]) state[activeId] = {};
+      calculate(activeId);
+      saveState();
+    }
+
+    document.addEventListener("click", e => {
+      const nav = e.target.closest("[data-nav]");
+      if (nav) showExperiment(nav.dataset.nav);
+      const action = e.target.closest("[data-action]");
+      if (action) {
+        const id = action.dataset.id;
+        if (action.dataset.action === "calc") calculate(id);
+        if (action.dataset.action === "save") { calculate(id); saveState(); }
+        if (action.dataset.action === "csv") exportCsv(id);
+        if (action.dataset.action === "png") exportPng(id);
+      }
+    });
+
+    document.addEventListener("input", e => {
+      if (e.target.matches("[data-key]")) calculate(e.target.closest(".report-page")?.dataset.id || activeId);
+    });
+
+    document.getElementById("saveAllBtn").addEventListener("click", () => {
+      experiments.forEach(exp => calculate(exp.id));
+      saveState();
+      alert("全部实验数据已保存。");
+    });
+    document.getElementById("loadDemoBtn").addEventListener("click", fillDemoData);
+    document.getElementById("clearCurrentBtn").addEventListener("click", clearCurrent);
+    document.getElementById("printBtn").addEventListener("click", () => {
+      collectInputs();
+      localStorage.setItem(APP_KEY, JSON.stringify(state));
+      window.print();
+    });
+
+    buildNav();
+    buildReports();
+    experiments.forEach(exp => calculate(exp.id));
+  </script>
+</body>
+</html>
