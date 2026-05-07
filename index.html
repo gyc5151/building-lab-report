@@ -331,12 +331,14 @@
       padding: 10px 12px;
       margin-top: 10px;
       white-space: pre-wrap;
+      overflow-x: hidden;
     }
 
     .formula-output {
       display: grid;
       gap: 10px;
       white-space: normal;
+      min-width: 0;
     }
 
     .formula-card {
@@ -344,6 +346,8 @@
       background: #ffffff;
       border-radius: 8px;
       padding: 12px;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .formula-name {
@@ -354,16 +358,27 @@
     }
 
     .formula-math {
+      display: block;
+      width: 100%;
+      max-width: 100%;
       overflow-x: auto;
       overflow-y: hidden;
-      padding: 2px 0 4px;
+      padding: 2px 0 8px;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
+      scrollbar-width: thin;
     }
 
     .formula-math mjx-container {
       margin: 0 !important;
       text-align: left !important;
       font-size: 105% !important;
+      min-width: max-content;
+      max-width: none !important;
+    }
+
+    .formula-math svg {
+      max-width: none !important;
     }
 
     .formula-plain {
