@@ -1200,6 +1200,7 @@
       const avg = mean(strengths);
       const sd = sampleStd(strengths);
       const minF = strengths.length ? Math.min(...strengths) : NaN;
+      const strengthList = strengths.map(v => fmt(v, 1)).join("、");
       let estimate = NaN;
       let rule = "";
       if (strengths.some(v => v < 10)) {
@@ -1212,7 +1213,25 @@
         rule = "测区数不少于 10 个，强度推定值 = 平均值 - 1.645 × 标准差。";
       }
       document.getElementById("reboundResult").textContent = strengths.length
-        ? `有效强度换算值数量：${strengths.length}\n混凝土强度换算值平均值：${fmt(avg, 1)} MPa\n标准差：${fmt(sd, 2)} MPa\n最小强度换算值：${fmt(minF, 1)} MPa\n${rule}\n强度推定值：${strengths.some(v => v < 10) ? "< 10.0 MPa" : fmt(estimate, 1) + " MPa"}\n\n计算说明：每测区 16 个回弹值剔除 3 个最大值和 3 个最小值，余下 10 个取平均；非水平测试先角度修正，再按浇筑顶面/底面修正。强度换算值按课程测强曲线查表后填入，本工具负责统计计算。`
+        ? `原公式：
+Rma = (ΣRi) / 10（每测区 16 个回弹值剔除 3 个最大值和 3 个最小值，余下 10 个取平均）
+Rm = Rma + ΔRa
+Rm = Rms + ΔRs
+mfcu = (Σfcuc,i) / n
+Sfcu = √[(Σ(fcuc,i)^2 - n(mfcu)^2) / (n - 1)]
+fcu,e = fcuc,min（n < 10）
+fcu,e = mfcu - 1.645Sfcu（n ≥ 10）
+
+代入计算：
+有效强度换算值数量 n = ${strengths.length}
+fcuc,i = ${strengthList} MPa
+mfcu = (${strengthList}) / ${strengths.length} = ${fmt(avg, 1)} MPa
+Sfcu = ${fmt(sd, 2)} MPa
+fcuc,min = ${fmt(minF, 1)} MPa
+${rule}
+强度推定值 fcu,e = ${strengths.some(v => v < 10) ? "< 10.0 MPa" : fmt(estimate, 1) + " MPa"}
+
+说明：非水平测试先按 ΔRa 进行角度修正，再按 ΔRs 进行浇筑顶面/底面修正。强度换算值按课程测强曲线查表后填入。`
         : "待输入每测区回弹值和强度换算值。";
       drawLineChart("reboundChart", [
         { name: "回弹平均值", data: reboundMeans.map((y, i) => ({ x: i + 1, y })) },
@@ -1247,8 +1266,19 @@
         if (Number.isFinite(h)) depths.push(h);
       });
       const avgH = mean(depths);
+      const depthList = depths.map(v => fmt(v, 1)).join("、");
       document.getElementById("crackResult").textContent = depths.length
-        ? `不跨缝平测声速：${fmt(velocity, 3)} mm/μs（约 ${fmt(velocity, 3)} km/s）\n各测点裂缝深度平均值：${fmt(avgH, 1)} mm\n计算公式：hci = li / 2 × √[(ti0 × v / li)^2 - 1]\n结论：该裂缝深度可暂取 ${fmt(avgH, 1)} mm，最终应结合首波反相情况和异常数据剔除要求确定。`
+        ? `原公式：
+v = (ln' - l1') / (tn' - t1')
+hci = li / 2 × √[(ti0 × v / li)^2 - 1]
+mbc = (Σhci) / n
+
+代入计算：
+不跨缝平测声速 v = ${fmt(velocity, 3)} mm/μs（约 ${fmt(velocity, 3)} km/s）
+hci = ${depthList} mm
+mbc = (${depthList}) / ${depths.length} = ${fmt(avgH, 1)} mm
+
+结论：该裂缝深度可暂取 hc = ${fmt(avgH, 1)} mm，最终应结合首波反相情况和异常数据剔除要求确定。`
         : "待输入不跨缝、跨缝声时和测距。";
       drawLineChart("crackChart", [
         { name: "不跨缝声时", data: rows.filter(r => Number.isFinite(r.tn)).map(r => ({ x: r.l, y: r.tn })) },
@@ -1270,7 +1300,19 @@
         all.push(...vals);
       }
       document.getElementById("carbonationResult").textContent = all.length
-        ? `碳化深度最大值：${fmt(Math.max(...all), 1)} mm\n碳化深度最小值：${fmt(Math.min(...all), 1)} mm\n碳化深度平均值：${fmt(mean(all), 1)} mm\n记录说明：酚酞未变色处为已碳化混凝土，测量值精确至 1mm。`
+        ? `原公式：
+碳化深度平均值 dm = (Σdi) / n
+dmax = max(di)
+dmin = min(di)
+
+代入计算：
+di = ${all.map(v => fmt(v, 1)).join("、")} mm
+n = ${all.length}
+dmax = ${fmt(Math.max(...all), 1)} mm
+dmin = ${fmt(Math.min(...all), 1)} mm
+dm = (${all.map(v => fmt(v, 1)).join("、")}) / ${all.length} = ${fmt(mean(all), 1)} mm
+
+记录说明：酚酞未变色处为已碳化混凝土，测量值精确至 1mm。`
         : "待输入碳化深度测孔值。";
       drawBarChart("carbonationChart", avgs, "测区", "平均碳化深度 / mm");
       return avgs.map(p => ({ 测区: p.x, 平均值: fmt(p.y, 1) }));
@@ -1294,7 +1336,21 @@
         else [scale, effect] = ["5", "钢筋易失去碱性保护，发生锈蚀"];
       }
       document.getElementById("coverResult").textContent = vals.length
-        ? `测点数 n：${n}\n平均保护层厚度 Dn：${fmt(avg, 1)} mm\n实测标准差 SD：${fmt(sd, 1)} mm\n判定系数 Kp：${Number.isFinite(kp) ? kp : "测点数少于 10，需补充测点"}\n特征值 Dne：${fmt(dne, 1)} mm\nDne / Dnd：${fmt(ratio, 3)}\n评定标度：${scale || "待输入设计值或补充测点"} ${effect}`
+        ? `原公式：
+Dn = (ΣDni) / n
+SD = √[(Σ(Dni)^2 - n(Dn)^2) / (n - 1)]
+Dne = Dn - KpSD
+评定指标 = Dne / Dnd
+
+代入计算：
+Dni = ${vals.map(v => fmt(v, 1)).join("、")} mm
+n = ${n}
+Dn = ${fmt(avg, 1)} mm
+SD = ${fmt(sd, 1)} mm
+Kp = ${Number.isFinite(kp) ? kp : "测点数少于 10，需补充测点"}
+Dne = ${fmt(avg, 1)} - ${Number.isFinite(kp) ? kp : "Kp"} × ${fmt(sd, 1)} = ${fmt(dne, 1)} mm
+Dne / Dnd = ${fmt(dne, 1)} / ${fmt(design, 1)} = ${fmt(ratio, 3)}
+评定标度：${scale || "待输入设计值或补充测点"} ${effect}`
         : "待输入钢筋保护层厚度实测值。";
       drawBarChart("coverChart", vals.map((y, i) => ({ x: i + 1, y })), "测点", "保护层厚度 / mm", Number.isFinite(design) ? design : undefined);
       return vals.map((v, i) => ({ 测点: i + 1, 保护层厚度: fmt(v, 1) }));
@@ -1324,12 +1380,34 @@
       }
       const vs = rows.map(r => r.v).filter(Number.isFinite);
       const aps = rows.map(r => r.Ap).filter(Number.isFinite);
+      const vm = mean(vs);
       const vc = vs.length >= 2 ? mean(vs) - 1.645 * sampleStd(vs) : NaN;
+      const sx = sampleStd(vs);
       const am = mean(aps);
       const abnormalV = rows.filter(r => Number.isFinite(vc) && r.v <= vc);
       const abnormalA = rows.filter(r => Number.isFinite(am) && r.Ap < am - 6);
       document.getElementById("pileResult").textContent = rows.length
-        ? `有效测点数：${rows.length}\n平均声速：${fmt(mean(vs), 2)} km/s\n声速异常判断参考值 vc：${fmt(vc, 2)} km/s\n平均波幅 Am：${fmt(am, 2)} dB，波幅异常阈值 Am-6：${fmt(am - 6, 2)} dB\n声速异常测点：${abnormalV.map(r => r.i + 1).join("、") || "未见明显异常"}\n波幅异常测点：${abnormalA.map(r => r.i + 1).join("、") || "未见明显异常"}\n初步判定：${abnormalV.length || abnormalA.length ? "存在可疑测点，应结合波形、PSD、主频和加密测试综合判定桩身完整性类别。" : "各声学参数未见明显异常，可暂按完整性较好记录。"}`
+        ? `原公式：
+tci = ti - t0 - t'
+vi = l' / tci
+Api = 20lg(ai / a0)
+fi = 1000 / Ti
+vm = (Σvi) / n
+sx = √[Σ(vi - vm)^2 / (n - 1)]
+v0 = vm - λsx（本工具默认 λ = 1.645 作为课堂统计参考）
+波幅异常判据：Api < Am - 6
+
+代入计算：
+有效测点数 n = ${rows.length}
+平均声速 vm = ${fmt(vm, 2)} km/s
+声速标准差 sx = ${fmt(sx, 2)} km/s
+声速异常判断参考值 vc = ${fmt(vm, 2)} - 1.645 × ${fmt(sx, 2)} = ${fmt(vc, 2)} km/s
+平均波幅 Am = ${fmt(am, 2)} dB
+波幅异常阈值 Am - 6 = ${fmt(am, 2)} - 6 = ${fmt(am - 6, 2)} dB
+声速异常测点：${abnormalV.map(r => r.i + 1).join("、") || "未见明显异常"}
+波幅异常测点：${abnormalA.map(r => r.i + 1).join("、") || "未见明显异常"}
+
+初步判定：${abnormalV.length || abnormalA.length ? "存在可疑测点，应结合波形、PSD、主频和加密测试综合判定桩身完整性类别。" : "各声学参数未见明显异常，可暂按完整性较好记录。"}`
         : "待输入基桩声测数据。";
       drawLineChart("pileChart", [
         { name: "声速 v", data: rows.filter(r => Number.isFinite(r.v)).map(r => ({ x: r.z, y: r.v })) },
@@ -1358,7 +1436,19 @@
       const strainErr = last && Number.isFinite(last.ts) && last.ts !== 0 ? (last.strain - last.ts) / last.ts * 100 : NaN;
       const deflErr = last && Number.isFinite(last.td) && last.td !== 0 ? (last.defl - last.td) / last.td * 100 : NaN;
       document.getElementById("bridgeStaticResult").textContent = staticRows.length
-        ? `最大级荷载：${fmt(last.load, 1)} kN\n实测应变：${fmt(last.strain, 1)} με，理论应变：${fmt(last.ts, 1)} με，应变误差：${fmt(strainErr, 2)}%\n实测挠度：${fmt(last.defl, 3)} mm，理论挠度：${fmt(last.td, 3)} mm，挠度误差：${fmt(deflErr, 2)}%\n理论应力可按 σ = Eε 计算；C40 混凝土弹性模量可取 32.5GPa，具体以课堂要求为准。`
+        ? `原公式：
+理论应力：σ = Eε
+应变误差 ηε = (ε实测 - ε理论) / ε理论 × 100%
+挠度误差 ηf = (f实测 - f理论) / f理论 × 100%
+
+代入计算（最大级荷载）：
+P = ${fmt(last.load, 1)} kN
+ε实测 = ${fmt(last.strain, 1)} με，ε理论 = ${fmt(last.ts, 1)} με
+ηε = (${fmt(last.strain, 1)} - ${fmt(last.ts, 1)}) / ${fmt(last.ts, 1)} × 100% = ${fmt(strainErr, 2)}%
+f实测 = ${fmt(last.defl, 3)} mm，f理论 = ${fmt(last.td, 3)} mm
+ηf = (${fmt(last.defl, 3)} - ${fmt(last.td, 3)}) / ${fmt(last.td, 3)} × 100% = ${fmt(deflErr, 2)}%
+
+理论应力可按 σ = Eε 计算；C40 混凝土弹性模量可取 E = 32.5GPa，具体以课堂要求为准。`
         : "待输入静载实验数据。";
       drawLineChart("bridgeStaticChart", [
         { name: "实测应变", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.strain)).map(r => ({ x: r.load, y: r.strain })) },
@@ -1379,7 +1469,19 @@
       const fAvg = mean(freqs);
       const fErr = (fAvg - theoryF) / theoryF * 100;
       document.getElementById("bridgeDynamicResult").textContent = dynRows.length || parseSeries(value("timeSeries", "bridge")).length || parseSeries(value("fftSeries", "bridge")).length
-        ? `理论一阶基频：${theoryF.toFixed(2)} Hz\n实测频率平均值：${fmt(fAvg, 2)} Hz\n频率误差：${fmt(fErr, 2)}%\n冲击系数可按 μ = 动挠度幅值 / 静挠度值 或课程指定公式计算；请结合跑车试验静、动态响应峰值填写。\n阻尼会消耗振动能量并影响结构振幅和振动衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座、连接构造、铺装层、栏杆附属结构和土-结构相互作用等。`
+        ? `原公式：
+实测频率平均值 fm = (Σfi) / n
+频率误差 ηf = (fm - f理论) / f理论 × 100%
+冲击系数可按 μ = y动 / y静 或课程指定公式计算
+阻尼比常用半功率带宽法：ξ = (f2 - f1) / (2fn)
+
+代入计算：
+f理论 = ${theoryF.toFixed(2)} Hz
+fi = ${freqs.map(v => fmt(v, 2)).join("、") || "待输入"} Hz
+fm = ${fmt(fAvg, 2)} Hz
+ηf = (${fmt(fAvg, 2)} - ${theoryF.toFixed(2)}) / ${theoryF.toFixed(2)} × 100% = ${fmt(fErr, 2)}%
+
+冲击系数请结合跑车试验静、动态响应峰值填写。阻尼会消耗振动能量并影响结构振幅和振动衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座、连接构造、铺装层、栏杆附属结构和土-结构相互作用等。`
         : "待输入动载实验数据。";
       const time = parseSeries(value("timeSeries", "bridge"));
       const fft = parseSeries(value("fftSeries", "bridge"));
