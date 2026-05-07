@@ -9,6 +9,17 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="manifest.webmanifest" />
   <title>建筑结构检测技术实验报告工具</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"]],
+        displayMath: [["\\[", "\\]"]]
+      },
+      svg: { fontCache: "global" },
+      options: { skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"] }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   <style>
     :root {
       --ink: #1f2933;
@@ -332,40 +343,41 @@
       border: 1px solid #dbeafe;
       background: #ffffff;
       border-radius: 8px;
-      padding: 10px;
+      padding: 12px;
     }
 
     .formula-name {
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       color: #1e3a8a;
       font-weight: 700;
       font-size: 13px;
     }
 
-    .formula-chain {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      font-size: 13px;
-      line-height: 1.5;
+    .formula-math {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 2px 0 4px;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .formula-part {
-      display: inline-block;
-      max-width: 100%;
+    .formula-math mjx-container {
+      margin: 0 !important;
+      text-align: left !important;
+      font-size: 105% !important;
+    }
+
+    .formula-plain {
+      margin-top: 8px;
+      color: #475569;
+      font-size: 12px;
+      line-height: 1.55;
       overflow-wrap: anywhere;
-    }
-
-    .formula-eq {
-      color: #2563eb;
-      font-weight: 700;
     }
 
     .formula-note {
       color: #334155;
       white-space: pre-wrap;
+      line-height: 1.65;
     }
 
     .canvas-wrap {
@@ -588,6 +600,14 @@
       .formula-eq {
         display: block;
         margin: 4px 0;
+      }
+
+      .formula-card {
+        padding: 10px;
+      }
+
+      .formula-math mjx-container {
+        font-size: 95% !important;
       }
 
       .toolbar {
@@ -873,17 +893,12 @@
         .replaceAll('"', "&quot;");
     }
 
-    function formulaLine(name, original, substitution, result) {
+    function formulaLine(name, originalTex, substitutionTex, resultTex, plainText = "") {
       return `
         <div class="formula-card">
           <div class="formula-name">${escapeHtml(name)}</div>
-          <div class="formula-chain">
-            <span class="formula-part">${escapeHtml(original)}</span>
-            <span class="formula-eq">=</span>
-            <span class="formula-part">${escapeHtml(substitution)}</span>
-            <span class="formula-eq">=</span>
-            <span class="formula-part">${escapeHtml(result)}</span>
-          </div>
+          <div class="formula-math">\\[${originalTex} = ${substitutionTex} = ${resultTex}\\]</div>
+          ${plainText ? `<div class="formula-plain">${escapeHtml(plainText)}</div>` : ""}
         </div>`;
     }
 
@@ -893,7 +908,11 @@
 
     function setResultHtml(id, html) {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = html;
+      if (!el) return;
+      el.innerHTML = html;
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetPromise([el]).catch(() => {});
+      }
     }
 
     function buildNav() {
@@ -1200,6 +1219,14 @@
       return Number.isFinite(n) ? n.toFixed(digits) : "";
     }
 
+    function texSum(arr, digits = 1) {
+      return arr.length ? arr.map(v => fmt(v, digits)).join(" + ") : "\\cdots";
+    }
+
+    function texValue(n, digits = 1, fallback = "\\cdots") {
+      return Number.isFinite(n) ? fmt(n, digits) : fallback;
+    }
+
     function round1(n) { return Number.isFinite(n) ? Math.round(n * 10) / 10 : NaN; }
 
     const angleTable = {
@@ -1296,23 +1323,23 @@
       const reboundEmpty = "待输入每测区回弹值和强度换算值。";
       if (strengths.length) {
         setResultHtml("reboundMeanResult", `<div class="formula-output">${
-          formulaLine("强度换算值平均值", "mfcu = (Σfcuc,i) / n", `(${strengthList}) / ${strengths.length}`, `${fmt(avg, 1)} MPa`)
+          formulaLine("强度换算值平均值", "m_{fcu}=\\frac{\\sum f_{cu,i}^{c}}{n}", `\\frac{${texSum(strengths, 1)}}{${strengths.length}}`, `${fmt(avg, 1)}\\,\\mathrm{MPa}`)
         }${noteBlock("其中 fcuc,i 为各测区混凝土强度换算值。")}</div>`);
         setResultHtml("reboundStdResult", `<div class="formula-output">${
-          formulaLine("强度换算值标准差", "Sfcu = √[(Σ(fcuc,i)^2 - n(mfcu)^2) / (n - 1)]", `√[(Σ(fcuc,i)^2 - ${strengths.length} × ${fmt(avg, 1)}^2) / (${strengths.length} - 1)]`, `${fmt(sd, 2)} MPa`)
+          formulaLine("强度换算值标准差", "S_{fcu}=\\sqrt{\\frac{\\sum (f_{cu,i}^{c})^2-n(m_{fcu})^2}{n-1}}", `\\sqrt{\\frac{\\sum (f_{cu,i}^{c})^2-${strengths.length}\\times ${fmt(avg, 1)}^2}{${strengths.length}-1}}`, `${fmt(sd, 2)}\\,\\mathrm{MPa}`)
         }</div>`);
         const estimateOriginal = strengths.some(v => v < 10)
-          ? "fcuc,i < 10.0MPa 时，fcu,e < 10.0MPa"
+          ? "f_{cu,i}^{c}<10.0\\,\\mathrm{MPa}\\Rightarrow f_{cu,e}<10.0\\,\\mathrm{MPa}"
           : strengths.length < 10
-            ? "fcu,e = fcuc,min"
-            : "fcu,e = mfcu - 1.645Sfcu";
+            ? "f_{cu,e}=f_{cu,min}^{c}"
+            : "f_{cu,e}=m_{fcu}-1.645S_{fcu}";
         const estimateSub = strengths.some(v => v < 10)
-          ? `存在 ${strengths.filter(v => v < 10).map(v => fmt(v, 1)).join("、")} MPa < 10.0MPa`
+          ? `${strengths.filter(v => v < 10).map(v => fmt(v, 1)).join(",")}\\,\\mathrm{MPa}<10.0\\,\\mathrm{MPa}`
           : strengths.length < 10
             ? `${fmt(minF, 1)}`
-            : `${fmt(avg, 1)} - 1.645 × ${fmt(sd, 2)}`;
+            : `${fmt(avg, 1)}-1.645\\times ${fmt(sd, 2)}`;
         setResultHtml("reboundEstimateResult", `<div class="formula-output">${
-          formulaLine("强度推定值", estimateOriginal, estimateSub, strengths.some(v => v < 10) ? "< 10.0 MPa" : `${fmt(estimate, 1)} MPa`)
+          formulaLine("强度推定值", estimateOriginal, estimateSub, strengths.some(v => v < 10) ? "<10.0\\,\\mathrm{MPa}" : `${fmt(estimate, 1)}\\,\\mathrm{MPa}`)
         }${noteBlock(`${rule}\n回弹平均值原公式：Rma = (ΣRi) / 10；角度修正：Rm = Rma + ΔRa；浇筑面修正：Rm = Rms + ΔRs。`)}</div>`);
       } else {
         setResultHtml("reboundMeanResult", reboundEmpty);
@@ -1357,8 +1384,8 @@
       const lastValid = valid[valid.length - 1];
       setResultHtml("crackResult", depths.length
         ? `<div class="formula-output">
-            ${formulaLine("不跨缝平测声速", "v = (ln' - l1') / (tn' - t1')", `(${fmt(lastValid?.l, 1)} - ${fmt(firstValid?.l, 1)}) / (${fmt(lastValid?.tn, 1)} - ${fmt(firstValid?.tn, 1)})`, `${fmt(velocity, 3)} mm/μs`)}
-            ${formulaLine("裂缝深度平均值", "mbc = (Σhci) / n", `(${depthList}) / ${depths.length}`, `${fmt(avgH, 1)} mm`)}
+            ${formulaLine("不跨缝平测声速", "v=\\frac{l_n'-l_1'}{t_n'-t_1'}", `\\frac{${texValue(lastValid?.l, 1)}-${texValue(firstValid?.l, 1)}}{${texValue(lastValid?.tn, 1)}-${texValue(firstValid?.tn, 1)}}`, `${fmt(velocity, 3)}\\,\\mathrm{mm/\\mu s}`)}
+            ${formulaLine("裂缝深度平均值", "m_{bc}=\\frac{\\sum h_{ci}}{n}", `\\frac{${texSum(depths, 1)}}{${depths.length}}`, `${fmt(avgH, 1)}\\,\\mathrm{mm}`)}
             ${noteBlock(`单点裂缝深度原公式：hci = li / 2 × √[(ti0 × v / li)^2 - 1]\n结论：该裂缝深度可暂取 hc = ${fmt(avgH, 1)} mm，最终应结合首波反相情况和异常数据剔除要求确定。`)}
           </div>`
         : "待输入不跨缝、跨缝声时和测距。");
@@ -1383,9 +1410,9 @@
       }
       setResultHtml("carbonationResult", all.length
         ? `<div class="formula-output">
-            ${formulaLine("碳化深度最大值", "dmax = max(di)", `max(${all.map(v => fmt(v, 1)).join("、")})`, `${fmt(Math.max(...all), 1)} mm`)}
-            ${formulaLine("碳化深度最小值", "dmin = min(di)", `min(${all.map(v => fmt(v, 1)).join("、")})`, `${fmt(Math.min(...all), 1)} mm`)}
-            ${formulaLine("碳化深度平均值", "dm = (Σdi) / n", `(${all.map(v => fmt(v, 1)).join("、")}) / ${all.length}`, `${fmt(mean(all), 1)} mm`)}
+            ${formulaLine("碳化深度最大值", "d_{max}=\\max(d_i)", `\\max(${all.map(v => fmt(v, 1)).join(",")})`, `${fmt(Math.max(...all), 1)}\\,\\mathrm{mm}`)}
+            ${formulaLine("碳化深度最小值", "d_{min}=\\min(d_i)", `\\min(${all.map(v => fmt(v, 1)).join(",")})`, `${fmt(Math.min(...all), 1)}\\,\\mathrm{mm}`)}
+            ${formulaLine("碳化深度平均值", "d_m=\\frac{\\sum d_i}{n}", `\\frac{${texSum(all, 1)}}{${all.length}}`, `${fmt(mean(all), 1)}\\,\\mathrm{mm}`)}
             ${noteBlock("记录说明：酚酞未变色处为已碳化混凝土，测量值精确至 1mm。")}
           </div>`
         : "待输入碳化深度测孔值。");
@@ -1412,10 +1439,10 @@
       }
       setResultHtml("coverResult", vals.length
         ? `<div class="formula-output">
-            ${formulaLine("平均保护层厚度", "Dn = (ΣDni) / n", `(${vals.map(v => fmt(v, 1)).join("、")}) / ${n}`, `${fmt(avg, 1)} mm`)}
-            ${formulaLine("实测标准差", "SD = √[(Σ(Dni)^2 - n(Dn)^2) / (n - 1)]", `√[(Σ(Dni)^2 - ${n} × ${fmt(avg, 1)}^2) / (${n} - 1)]`, `${fmt(sd, 1)} mm`)}
-            ${formulaLine("保护层厚度特征值", "Dne = Dn - KpSD", `${fmt(avg, 1)} - ${Number.isFinite(kp) ? kp : "Kp"} × ${fmt(sd, 1)}`, `${fmt(dne, 1)} mm`)}
-            ${formulaLine("评定指标", "Dne / Dnd", `${fmt(dne, 1)} / ${fmt(design, 1)}`, `${fmt(ratio, 3)}`)}
+            ${formulaLine("平均保护层厚度", "D_n=\\frac{\\sum D_{ni}}{n}", `\\frac{${texSum(vals, 1)}}{${n}}`, `${fmt(avg, 1)}\\,\\mathrm{mm}`)}
+            ${formulaLine("实测标准差", "S_D=\\sqrt{\\frac{\\sum D_{ni}^2-nD_n^2}{n-1}}", `\\sqrt{\\frac{\\sum D_{ni}^2-${n}\\times ${fmt(avg, 1)}^2}{${n}-1}}`, `${fmt(sd, 1)}\\,\\mathrm{mm}`)}
+            ${formulaLine("保护层厚度特征值", "D_{ne}=D_n-K_pS_D", `${fmt(avg, 1)}-${Number.isFinite(kp) ? kp : "K_p"}\\times ${fmt(sd, 1)}`, `${fmt(dne, 1)}\\,\\mathrm{mm}`)}
+            ${formulaLine("评定指标", "\\frac{D_{ne}}{D_{nd}}", `\\frac{${fmt(dne, 1)}}{${texValue(design, 1)}}`, `${fmt(ratio, 3)}`)}
             ${noteBlock(`Kp = ${Number.isFinite(kp) ? kp : "测点数少于 10，需补充测点"}\n评定标度：${scale || "待输入设计值或补充测点"} ${effect}`)}
           </div>`
         : "待输入钢筋保护层厚度实测值。");
@@ -1455,14 +1482,14 @@
       const abnormalA = rows.filter(r => Number.isFinite(am) && r.Ap < am - 6);
       setResultHtml("pileResult", rows.length
         ? `<div class="formula-output">
-            ${formulaLine("测点声时", "tci = ti - t0 - t'", "各测点 ti - t0 - t'", "见上表 tci 计算基础")}
-            ${formulaLine("测点声速", "vi = l' / tci", `${fmt(l, 1)} / tci`, "见上表 vi")}
-            ${formulaLine("测点波幅", "Api = 20lg(ai / a0)", `20lg(ai / ${fmt(a0, 3)})`, "见上表 Ap")}
-            ${formulaLine("测点主频", "fi = 1000 / Ti", "1000 / Ti", "见上表 f")}
-            ${formulaLine("平均声速", "vm = (Σvi) / n", `Σvi / ${rows.length}`, `${fmt(vm, 2)} km/s`)}
-            ${formulaLine("声速标准差", "sx = √[Σ(vi - vm)^2 / (n - 1)]", `√[Σ(vi - ${fmt(vm, 2)})^2 / (${rows.length} - 1)]`, `${fmt(sx, 2)} km/s`)}
-            ${formulaLine("声速异常判断参考值", "v0 = vm - λsx", `${fmt(vm, 2)} - 1.645 × ${fmt(sx, 2)}`, `${fmt(vc, 2)} km/s`)}
-            ${formulaLine("波幅异常阈值", "Api < Am - 6", `${fmt(am, 2)} - 6`, `${fmt(am - 6, 2)} dB`)}
+            ${formulaLine("测点声时", "t_{ci}=t_i-t_0-t'", "t_i-t_0-t'", "\\text{见上表}", "各测点按本式逐行计算。")}
+            ${formulaLine("测点声速", "v_i=\\frac{l'}{t_{ci}}", `\\frac{${fmt(l, 1)}}{t_{ci}}`, "\\text{见上表}", "各测点按本式逐行计算。")}
+            ${formulaLine("测点波幅", "A_{pi}=20\\lg\\frac{a_i}{a_0}", `20\\lg\\frac{a_i}{${fmt(a0, 3)}}`, "\\text{见上表}", "各测点按本式逐行计算。")}
+            ${formulaLine("测点主频", "f_i=\\frac{1000}{T_i}", "\\frac{1000}{T_i}", "\\text{见上表}", "各测点按本式逐行计算。")}
+            ${formulaLine("平均声速", "v_m=\\frac{\\sum v_i}{n}", `\\frac{\\sum v_i}{${rows.length}}`, `${fmt(vm, 2)}\\,\\mathrm{km/s}`)}
+            ${formulaLine("声速标准差", "s_x=\\sqrt{\\frac{\\sum (v_i-v_m)^2}{n-1}}", `\\sqrt{\\frac{\\sum (v_i-${fmt(vm, 2)})^2}{${rows.length}-1}}`, `${fmt(sx, 2)}\\,\\mathrm{km/s}`)}
+            ${formulaLine("声速异常判断参考值", "v_0=v_m-\\lambda s_x", `${fmt(vm, 2)}-1.645\\times ${fmt(sx, 2)}`, `${fmt(vc, 2)}\\,\\mathrm{km/s}`)}
+            ${formulaLine("波幅异常阈值", "A_{pi}<A_m-6", `${fmt(am, 2)}-6`, `${fmt(am - 6, 2)}\\,\\mathrm{dB}`)}
             ${noteBlock(`声速异常测点：${abnormalV.map(r => r.i + 1).join("、") || "未见明显异常"}\n波幅异常测点：${abnormalA.map(r => r.i + 1).join("、") || "未见明显异常"}\n初步判定：${abnormalV.length || abnormalA.length ? "存在可疑测点，应结合波形、PSD、主频和加密测试综合判定桩身完整性类别。" : "各声学参数未见明显异常，可暂按完整性较好记录。"}`)}
           </div>`
         : "待输入基桩声测数据。");
@@ -1494,9 +1521,9 @@
       const deflErr = last && Number.isFinite(last.td) && last.td !== 0 ? (last.defl - last.td) / last.td * 100 : NaN;
       setResultHtml("bridgeStaticResult", staticRows.length
         ? `<div class="formula-output">
-            ${formulaLine("应变误差", "ηε = (ε实测 - ε理论) / ε理论 × 100%", `(${fmt(last.strain, 1)} - ${fmt(last.ts, 1)}) / ${fmt(last.ts, 1)} × 100%`, `${fmt(strainErr, 2)}%`)}
-            ${formulaLine("挠度误差", "ηf = (f实测 - f理论) / f理论 × 100%", `(${fmt(last.defl, 3)} - ${fmt(last.td, 3)}) / ${fmt(last.td, 3)} × 100%`, `${fmt(deflErr, 2)}%`)}
-            ${formulaLine("理论应力", "σ = Eε", "32.5GPa × ε理论", "按最大级荷载理论应变代入")}
+            ${formulaLine("应变误差", "\\eta_\\varepsilon=\\frac{\\varepsilon_{\\text{实测}}-\\varepsilon_{\\text{理论}}}{\\varepsilon_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(last.strain, 1)}-${fmt(last.ts, 1)}}{${fmt(last.ts, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
+            ${formulaLine("挠度误差", "\\eta_f=\\frac{f_{\\text{实测}}-f_{\\text{理论}}}{f_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(last.defl, 3)}-${fmt(last.td, 3)}}{${fmt(last.td, 3)}}\\times100\\%`, `${fmt(deflErr, 2)}\\%`)}
+            ${formulaLine("理论应力", "\\sigma=E\\varepsilon", "32.5\\,\\mathrm{GPa}\\times\\varepsilon_{\\text{理论}}", "\\text{按最大级荷载理论应变代入}")}
             ${noteBlock(`最大级荷载 P = ${fmt(last.load, 1)} kN。\nC40 混凝土弹性模量可取 E = 32.5GPa，具体以课堂要求为准。`)}
           </div>`
         : "待输入静载实验数据。");
@@ -1520,10 +1547,10 @@
       const fErr = (fAvg - theoryF) / theoryF * 100;
       setResultHtml("bridgeDynamicResult", dynRows.length || parseSeries(value("timeSeries", "bridge")).length || parseSeries(value("fftSeries", "bridge")).length
         ? `<div class="formula-output">
-            ${formulaLine("实测频率平均值", "fm = (Σfi) / n", `(${freqs.map(v => fmt(v, 2)).join("、") || "待输入"}) / ${freqs.length || "n"}`, `${fmt(fAvg, 2)} Hz`)}
-            ${formulaLine("频率误差", "ηf = (fm - f理论) / f理论 × 100%", `(${fmt(fAvg, 2)} - ${theoryF.toFixed(2)}) / ${theoryF.toFixed(2)} × 100%`, `${fmt(fErr, 2)}%`)}
-            ${formulaLine("冲击系数", "μ = y动 / y静", "动响应峰值 / 静响应值", "待结合跑车试验峰值计算")}
-            ${formulaLine("阻尼比", "ξ = (f2 - f1) / (2fn)", "(半功率带宽上限频率 - 下限频率) / (2 × 共振频率)", "待由 FFT 图谱读取")}
+            ${formulaLine("实测频率平均值", "f_m=\\frac{\\sum f_i}{n}", `\\frac{${freqs.length ? texSum(freqs, 2) : "\\cdots"}}{${freqs.length || "n"}}`, `${fmt(fAvg, 2)}\\,\\mathrm{Hz}`)}
+            ${formulaLine("频率误差", "\\eta_f=\\frac{f_m-f_{\\text{理论}}}{f_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(fAvg, 2)}-${theoryF.toFixed(2)}}{${theoryF.toFixed(2)}}\\times100\\%`, `${fmt(fErr, 2)}\\%`)}
+            ${formulaLine("冲击系数", "\\mu=\\frac{y_{\\text{动}}}{y_{\\text{静}}}", "\\frac{\\text{动响应峰值}}{\\text{静响应值}}", "\\text{待结合跑车试验峰值计算}")}
+            ${formulaLine("阻尼比", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
             ${noteBlock("阻尼会消耗振动能量并影响结构振幅和振动衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座、连接构造、铺装层、栏杆附属结构和土-结构相互作用等。")}
           </div>`
         : "待输入动载实验数据。");
@@ -1826,6 +1853,11 @@
     buildNav();
     buildReports();
     experiments.forEach(exp => calculate(exp.id));
+    window.addEventListener("load", () => {
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetPromise().catch(() => {});
+      }
+    });
   </script>
 </body>
 </html>
