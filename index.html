@@ -1011,13 +1011,26 @@
             <label>浇筑面
               <select data-key="pourFace"><option value="side">侧面</option><option value="top">顶面</option><option value="bottom">底面</option></select>
             </label>
+            <label>强度换算
+              <select data-key="strengthMode">
+                <option value="auto">自动填表</option>
+                <option value="manual">手动查表</option>
+              </select>
+            </label>
+            <label>泵送修正
+              <select data-key="pumpMode">
+                <option value="auto">按表 1-7-3 自动</option>
+                <option value="none">不修正</option>
+                <option value="manual">手动填写</option>
+              </select>
+            </label>
             <label>芯样/试件修正系数 ${input("coreFactor", "number", 'step="0.001" placeholder="默认 1" class="small-input"')}</label>
           </div>
           <div class="wide-scroll"><table>
             <tr><th>测区编号</th>${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>
             ${calcRows}
           </table></div>
-          <p class="note">说明：强度换算值可按课程给定测强曲线查表后填入；本工具自动完成回弹平均、修正汇总、强度均值、标准差和推定值计算。</p>
+          <p class="note">说明：自动填表采用内置统一测强曲线估算回弹-碳化强度，再按指导书表 1-7-3 进行泵送修正；若课程要求使用指定查表值，可切换为手动查表后填写。</p>
         </div>
         <div class="section"><h3>5、混凝土强度换算值的平均值（写出计算过程）：</h3><div class="result-box" id="reboundMeanResult">待输入实验数据。</div></div>
         <div class="section"><h3>6、混凝土强度换算值的标准差（写出计算过程）：</h3><div class="result-box" id="reboundStdResult">待输入实验数据。</div></div>
@@ -1244,6 +1257,31 @@
 
     function round1(n) { return Number.isFinite(n) ? Math.round(n * 10) / 10 : NaN; }
 
+    function reboundCurveStrength(rm, carbonationDepth) {
+      if (!Number.isFinite(rm) || !Number.isFinite(carbonationDepth)) return NaN;
+      const d = Math.max(0, carbonationDepth);
+      return 0.02497 * Math.pow(rm, 2.0108) * Math.pow(10, -0.0358 * d);
+    }
+
+    function interpPoints(points, x) {
+      if (!Number.isFinite(x)) return NaN;
+      if (x <= points[0][0]) return points[0][1];
+      for (let i = 1; i < points.length; i++) {
+        const [x0, y0] = points[i - 1];
+        const [x1, y1] = points[i];
+        if (x <= x1) return y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+      }
+      return points[points.length - 1][1];
+    }
+
+    function pumpCorrection(baseStrength, carbonationDepth) {
+      if (!Number.isFinite(baseStrength) || !Number.isFinite(carbonationDepth)) return NaN;
+      const d = Math.round(Math.max(0, carbonationDepth) * 2) / 2;
+      if (d > 2) return NaN;
+      if (d <= 1) return interpPoints([[40, 4.5], [45, 3.0], [50, 1.5], [55, 0]], baseStrength);
+      return interpPoints([[30, 3.0], [35, 1.5], [40, 0]], baseStrength);
+    }
+
     const angleTable = {
       20: { "90": -6, "60": -5, "45": -4, "30": -3, "-30": 2.5, "-45": 3, "-60": 3.5, "-90": 4 },
       30: { "90": -5, "60": -4, "45": -3.5, "30": -2.5, "-30": 2, "-45": 2.5, "-60": 3, "-90": 3.5 },
@@ -1293,9 +1331,13 @@
       const page = document.querySelector('[data-id="rebound"]');
       const angle = value("angle", "rebound") || "0";
       const face = value("pourFace", "rebound") || "side";
+      const strengthMode = value("strengthMode", "rebound") || "auto";
+      const pumpMode = value("pumpMode", "rebound") || "auto";
       const coreFactor = num(value("coreFactor", "rebound")) || 1;
       const strengths = [];
+      const strengthSeries = [];
       const reboundMeans = [];
+      const autoWarnings = new Set();
       for (let c = 0; c < 10; c++) {
         const vals = Array.from({ length: 16 }, (_, r) => num(value(`r_${r}_${c}`, "rebound"))).filter(Number.isFinite);
         let rm = NaN;
@@ -1310,15 +1352,47 @@
         const afterAngle = Number.isFinite(rm) ? rm + angleFix : NaN;
         const faceFix = face === "side" ? 0 : interpTable(faceTable[face], afterAngle, afterAngle ? face : "");
         if (Number.isFinite(rm)) setValue(`rebound_calc_2_${c}`, fmt(faceFix, 1), "rebound");
-        const carb = num(value(`rebound_calc_3_${c}`, "rebound"));
+        let carb = num(value(`rebound_calc_3_${c}`, "rebound"));
         if (!Number.isFinite(carb)) {
           const avgCarb = num(value("carbonationAvg", "rebound"));
-          if (Number.isFinite(avgCarb)) setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
+          if (Number.isFinite(avgCarb)) {
+            carb = avgCarb;
+            setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
+          }
         }
-        const pump = num(value(`rebound_calc_4_${c}`, "rebound"));
-        const f = num(value(`rebound_calc_5_${c}`, "rebound"));
-        const correctedF = Number.isFinite(f) ? f * coreFactor + (Number.isFinite(pump) ? pump : 0) : NaN;
-        if (Number.isFinite(correctedF)) strengths.push(correctedF);
+        const correctedR = Number.isFinite(afterAngle) ? afterAngle + faceFix : NaN;
+        let tableStrength = NaN;
+        if (strengthMode === "auto") {
+          const baseStrength = reboundCurveStrength(correctedR, carb);
+          let pump = NaN;
+          if (pumpMode === "none") {
+            pump = 0;
+            setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
+          } else if (pumpMode === "auto") {
+            pump = pumpCorrection(baseStrength, carb);
+            if (Number.isFinite(pump)) {
+              setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
+            } else if (Number.isFinite(baseStrength) && Number.isFinite(carb) && carb > 2) {
+              setValue(`rebound_calc_4_${c}`, "", "rebound");
+              autoWarnings.add("碳化深度大于 2.0mm 的测区，指导书要求采用同条件试件或钻芯修正，泵送修正值未自动套用。");
+            }
+          } else {
+            pump = num(value(`rebound_calc_4_${c}`, "rebound"));
+          }
+          tableStrength = Number.isFinite(baseStrength) ? baseStrength + (Number.isFinite(pump) ? pump : 0) : NaN;
+          if (Number.isFinite(tableStrength)) setValue(`rebound_calc_5_${c}`, fmt(tableStrength, 1), "rebound");
+        } else {
+          tableStrength = num(value(`rebound_calc_5_${c}`, "rebound"));
+          if (pumpMode === "auto") {
+            const pump = pumpCorrection(tableStrength, carb);
+            if (Number.isFinite(pump)) setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
+          }
+        }
+        const correctedF = Number.isFinite(tableStrength) ? tableStrength * coreFactor : NaN;
+        if (Number.isFinite(correctedF)) {
+          strengths.push(correctedF);
+          strengthSeries.push({ x: c + 1, y: correctedF });
+        }
       }
       const avg = mean(strengths);
       const sd = sampleStd(strengths);
@@ -1339,7 +1413,7 @@
       if (strengths.length) {
         setResultHtml("reboundMeanResult", `<div class="formula-output">${
           formulaLine("强度换算值平均值", "m_{fcu}=\\frac{\\sum f_{cu,i}^{c}}{n}", `\\frac{${texSum(strengths, 1)}}{${strengths.length}}`, `${fmt(avg, 1)}\\,\\mathrm{MPa}`)
-        }${noteBlock("其中 fcuc,i 为各测区混凝土强度换算值。")}</div>`);
+        }${noteBlock(`其中 fcuc,i 为各测区混凝土强度换算值。${autoWarnings.size ? "\n" + [...autoWarnings].join("\n") : ""}`)}</div>`);
         setResultHtml("reboundStdResult", `<div class="formula-output">${
           formulaLine("强度换算值标准差", "S_{fcu}=\\sqrt{\\frac{\\sum (f_{cu,i}^{c})^2-n(m_{fcu})^2}{n-1}}", `\\sqrt{\\frac{\\sum (f_{cu,i}^{c})^2-${strengths.length}\\times ${fmt(avg, 1)}^2}{${strengths.length}-1}}`, `${fmt(sd, 2)}\\,\\mathrm{MPa}`)
         }</div>`);
@@ -1363,9 +1437,9 @@
       }
       drawLineChart("reboundChart", [
         { name: "回弹平均值", data: reboundMeans.map((y, i) => ({ x: i + 1, y })) },
-        { name: "强度换算值", data: strengths.map((y, i) => ({ x: i + 1, y })) }
+        { name: "强度换算值", data: strengthSeries }
       ], "测区编号", "数值");
-      return strengths.map((v, i) => ({ 测区: i + 1, 强度换算值: fmt(v, 2) }));
+      return strengthSeries.map(p => ({ 测区: p.x, 强度换算值: fmt(p.y, 2) }));
     }
 
     function calcCrack() {
