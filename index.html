@@ -1032,7 +1032,7 @@
             <tr><th>测区编号</th>${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>
             ${calcRows}
           </table></div>
-          <p class="note">说明：按课堂简化要求，自动填表不使用测强曲线；先完成角度和浇筑面修正，再用修正后回弹值查泵送修正，强度换算值 = 修正后回弹值 + 泵送修正值。</p>
+          <p class="note">说明：按课堂简化要求，角度修正值、浇筑面修正值、泵送修正值均按测区回弹平均值查表；强度换算值 = 回弹平均值 + 角度修正值 + 浇筑面修正值 + 泵送修正值。</p>
         </div>
         <div class="section"><h3>5、混凝土强度换算值的平均值（写出计算过程）：</h3><div class="result-box" id="reboundMeanResult">待输入实验数据。</div></div>
         <div class="section"><h3>6、混凝土强度换算值的标准差（写出计算过程）：</h3><div class="result-box" id="reboundStdResult">待输入实验数据。</div></div>
@@ -1270,12 +1270,12 @@
       return points[points.length - 1][1];
     }
 
-    function pumpCorrection(baseStrength, carbonationDepth) {
-      if (!Number.isFinite(baseStrength) || !Number.isFinite(carbonationDepth)) return NaN;
+    function pumpCorrection(reboundMean, carbonationDepth) {
+      if (!Number.isFinite(reboundMean) || !Number.isFinite(carbonationDepth)) return NaN;
       const d = Math.round(Math.max(0, carbonationDepth) * 2) / 2;
       if (d > 2) return NaN;
-      if (d <= 1) return interpPoints([[40, 4.5], [45, 3.0], [50, 1.5], [55, 0]], baseStrength);
-      return interpPoints([[30, 3.0], [35, 1.5], [40, 0]], baseStrength);
+      if (d <= 1) return interpPoints([[40, 4.5], [45, 3.0], [50, 1.5], [55, 0]], reboundMean);
+      return interpPoints([[30, 3.0], [35, 1.5], [40, 0]], reboundMean);
     }
 
     const angleTable = {
@@ -1348,7 +1348,7 @@
         const angleFix = interpTable(angleTable, rm, angle);
         if (Number.isFinite(rm)) setValue(`rebound_calc_1_${c}`, fmt(angleFix, 1), "rebound");
         const afterAngle = Number.isFinite(rm) ? rm + angleFix : NaN;
-        const faceFix = face === "side" ? 0 : interpTable(faceTable[face], afterAngle, afterAngle ? face : "");
+        const faceFix = face === "side" ? 0 : interpTable(faceTable[face], rm, Number.isFinite(rm) ? face : "");
         if (Number.isFinite(rm)) setValue(`rebound_calc_2_${c}`, fmt(faceFix, 1), "rebound");
         let carb = num(value(`rebound_calc_3_${c}`, "rebound"));
         if (useAverageCarbonation) {
@@ -1367,7 +1367,7 @@
             pump = 0;
             setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
           } else if (pumpMode === "auto") {
-            pump = pumpCorrection(baseStrength, carb);
+            pump = pumpCorrection(rm, carb);
             if (Number.isFinite(pump)) {
               setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
             } else if (Number.isFinite(baseStrength) && Number.isFinite(carb) && carb > 2) {
@@ -1382,7 +1382,7 @@
         } else {
           tableStrength = num(value(`rebound_calc_5_${c}`, "rebound"));
           if (pumpMode === "auto") {
-            const pump = pumpCorrection(tableStrength, carb);
+            const pump = pumpCorrection(rm, carb);
             if (Number.isFinite(pump)) setValue(`rebound_calc_4_${c}`, fmt(pump, 1), "rebound");
           }
         }
@@ -1427,7 +1427,7 @@
             : `${fmt(avg, 1)}-1.645\\times ${fmt(sd, 2)}`;
         setResultHtml("reboundEstimateResult", `<div class="formula-output">${
           formulaLine("强度推定值", estimateOriginal, estimateSub, strengths.some(v => v < 10) ? "<10.0\\,\\mathrm{MPa}" : `${fmt(estimate, 1)}\\,\\mathrm{MPa}`)
-        }${noteBlock(`${rule}\n回弹平均值原公式：Rma = (ΣRi) / 10；角度修正：Rm = Rma + ΔRa；浇筑面修正：Rm = Rms + ΔRs。\n课堂简化强度换算：fcuc,i = Rm + K，K 为按修正后回弹值查得的泵送修正值。`)}</div>`);
+        }${noteBlock(`${rule}\n回弹平均值原公式：Rma = (ΣRi) / 10；角度修正值 ΔRa、浇筑面修正值 ΔRs、泵送修正值 K 均按测区回弹平均值 Rma 查表。\n课堂简化强度换算：fcuc,i = Rma + ΔRa + ΔRs + K。`)}</div>`);
       } else {
         setResultHtml("reboundMeanResult", reboundEmpty);
         setResultHtml("reboundStdResult", reboundEmpty);
