@@ -509,7 +509,8 @@
       }
 
       .global-actions button,
-      .report-actions button {
+      .report-actions button,
+      .report-actions .file-label {
         width: 100%;
         min-width: 0;
         min-height: 40px;
@@ -892,6 +893,7 @@
           <button data-action="save" data-id="${id}">保存本实验数据</button>
           <button data-action="csv" data-id="${id}">导出本实验结果 CSV</button>
           <button data-action="png" data-id="${id}">导出图表 PNG</button>
+          <label class="file-label">导入本实验 CSV <input class="csv-import-input" type="file" accept=".csv,text/csv" data-import-csv="${id}" hidden></label>
           <span class="status" data-status-for="${id}"></span>
         </div>`;
     }
@@ -1806,6 +1808,91 @@
       downloadBlob(`${id}-实验数据.csv`, "\ufeff" + csv, "text/csv;charset=utf-8");
     }
 
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let cell = "";
+      let quoted = false;
+      const source = String(text || "");
+      for (let i = 0; i < source.length; i++) {
+        const ch = source[i];
+        if (quoted) {
+          if (ch === '"' && source[i + 1] === '"') {
+            cell += '"';
+            i++;
+          } else if (ch === '"') {
+            quoted = false;
+          } else {
+            cell += ch;
+          }
+          continue;
+        }
+        if (ch === '"') {
+          quoted = true;
+        } else if (ch === ",") {
+          row.push(cell);
+          cell = "";
+        } else if (ch === "\n") {
+          row.push(cell);
+          rows.push(row);
+          row = [];
+          cell = "";
+        } else if (ch !== "\r") {
+          cell += ch;
+        }
+      }
+      if (cell !== "" || row.length) {
+        row.push(cell);
+        rows.push(row);
+      }
+      if (rows[0]?.[0]) rows[0][0] = rows[0][0].replace(/^\ufeff/, "");
+      return rows;
+    }
+
+    function importCsvText(id, text) {
+      const rows = parseCsv(text);
+      if (!rows.length) return 0;
+      const page = document.querySelector(`.report-page[data-id="${id}"]`);
+      if (!page) return 0;
+      let count = 0;
+      const applyPair = (key, val) => {
+        key = String(key || "").trim().replace(/^\ufeff/, "");
+        if (!key || key.startsWith("result_")) return;
+        const el = Array.from(page.querySelectorAll("[data-key]")).find(item => item.dataset.key === key);
+        if (!el || el.type === "file") return;
+        el.value = val ?? "";
+        count++;
+      };
+      const header = rows[0].map(cell => String(cell || "").trim());
+      if (header[0] === "字段" && header[1] === "值") {
+        rows.slice(1).forEach(row => applyPair(row[0], row[1] ?? ""));
+      } else {
+        const values = rows[1] || [];
+        header.forEach((key, idx) => applyPair(key, values[idx] ?? ""));
+      }
+      calculate(id);
+      collectInputs(page);
+      state.activeId = activeId;
+      localStorage.setItem(APP_KEY, JSON.stringify(state));
+      return count;
+    }
+
+    function importCsvFile(id, file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const count = importCsvText(id, reader.result);
+          setStatus(id, count ? `已导入 ${count} 个字段并刷新计算。` : "未找到可导入字段。");
+        } catch (err) {
+          console.error(err);
+          setStatus(id, "CSV 导入失败，请检查文件格式。");
+        }
+      };
+      reader.onerror = () => setStatus(id, "CSV 文件读取失败。");
+      reader.readAsText(file, "utf-8");
+    }
+
     function exportPng(id) {
       calculate(id);
       const canvas = document.querySelector(`.report-page[data-id="${id}"] canvas`);
@@ -1916,6 +2003,13 @@
         if (action.dataset.action === "csv") exportCsv(id);
         if (action.dataset.action === "png") exportPng(id);
       }
+    });
+
+    document.addEventListener("change", e => {
+      const input = e.target.closest("[data-import-csv]");
+      if (!input) return;
+      importCsvFile(input.dataset.importCsv, input.files?.[0]);
+      input.value = "";
     });
 
     document.addEventListener("input", e => {
