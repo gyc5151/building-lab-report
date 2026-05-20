@@ -1336,6 +1336,8 @@
       const strengthMode = value("strengthMode", "rebound") || "auto";
       const pumpMode = value("pumpMode", "rebound") || "auto";
       const coreFactor = num(value("coreFactor", "rebound")) || 1;
+      const avgCarb = num(value("carbonationAvg", "rebound"));
+      const useAverageCarbonation = Number.isFinite(avgCarb) && avgCarb >= 0 && avgCarb <= 2;
       const strengths = [];
       const strengthSeries = [];
       const reboundMeans = [];
@@ -1355,12 +1357,12 @@
         const faceFix = face === "side" ? 0 : interpTable(faceTable[face], afterAngle, afterAngle ? face : "");
         if (Number.isFinite(rm)) setValue(`rebound_calc_2_${c}`, fmt(faceFix, 1), "rebound");
         let carb = num(value(`rebound_calc_3_${c}`, "rebound"));
-        if (!Number.isFinite(carb)) {
-          const avgCarb = num(value("carbonationAvg", "rebound"));
-          if (Number.isFinite(avgCarb)) {
-            carb = avgCarb;
-            setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
-          }
+        if (useAverageCarbonation) {
+          carb = avgCarb;
+          setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
+        } else if (!Number.isFinite(carb) && Number.isFinite(avgCarb)) {
+          carb = avgCarb;
+          setValue(`rebound_calc_3_${c}`, fmt(avgCarb, 1), "rebound");
         }
         const correctedR = Number.isFinite(afterAngle) ? afterAngle + faceFix : NaN;
         let tableStrength = NaN;
