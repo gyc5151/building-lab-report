@@ -1032,7 +1032,7 @@
             <tr><th>测区编号</th>${Array.from({ length: 10 }, (_, i) => `<th>${i + 1}</th>`).join("")}</tr>
             ${calcRows}
           </table></div>
-          <p class="note">说明：自动填表采用内置统一测强曲线估算回弹-碳化强度，再按指导书表 1-7-3 进行泵送修正；若课程要求使用指定查表值，可切换为手动查表后填写。</p>
+          <p class="note">说明：按课堂简化要求，自动填表不使用测强曲线；先完成角度和浇筑面修正，再用修正后回弹值查泵送修正，强度换算值 = 修正后回弹值 + 泵送修正值。</p>
         </div>
         <div class="section"><h3>5、混凝土强度换算值的平均值（写出计算过程）：</h3><div class="result-box" id="reboundMeanResult">待输入实验数据。</div></div>
         <div class="section"><h3>6、混凝土强度换算值的标准差（写出计算过程）：</h3><div class="result-box" id="reboundStdResult">待输入实验数据。</div></div>
@@ -1259,12 +1259,6 @@
 
     function round1(n) { return Number.isFinite(n) ? Math.round(n * 10) / 10 : NaN; }
 
-    function reboundCurveStrength(rm, carbonationDepth) {
-      if (!Number.isFinite(rm) || !Number.isFinite(carbonationDepth)) return NaN;
-      const d = Math.max(0, carbonationDepth);
-      return 0.02497 * Math.pow(rm, 2.0108) * Math.pow(10, -0.0358 * d);
-    }
-
     function interpPoints(points, x) {
       if (!Number.isFinite(x)) return NaN;
       if (x <= points[0][0]) return points[0][1];
@@ -1367,7 +1361,7 @@
         const correctedR = Number.isFinite(afterAngle) ? afterAngle + faceFix : NaN;
         let tableStrength = NaN;
         if (strengthMode === "auto") {
-          const baseStrength = reboundCurveStrength(correctedR, carb);
+          const baseStrength = correctedR;
           let pump = NaN;
           if (pumpMode === "none") {
             pump = 0;
@@ -1433,7 +1427,7 @@
             : `${fmt(avg, 1)}-1.645\\times ${fmt(sd, 2)}`;
         setResultHtml("reboundEstimateResult", `<div class="formula-output">${
           formulaLine("强度推定值", estimateOriginal, estimateSub, strengths.some(v => v < 10) ? "<10.0\\,\\mathrm{MPa}" : `${fmt(estimate, 1)}\\,\\mathrm{MPa}`)
-        }${noteBlock(`${rule}\n回弹平均值原公式：Rma = (ΣRi) / 10；角度修正：Rm = Rma + ΔRa；浇筑面修正：Rm = Rms + ΔRs。`)}</div>`);
+        }${noteBlock(`${rule}\n回弹平均值原公式：Rma = (ΣRi) / 10；角度修正：Rm = Rma + ΔRa；浇筑面修正：Rm = Rms + ΔRs。\n课堂简化强度换算：fcuc,i = Rm + K，K 为按修正后回弹值查得的泵送修正值。`)}</div>`);
       } else {
         setResultHtml("reboundMeanResult", reboundEmpty);
         setResultHtml("reboundStdResult", reboundEmpty);
