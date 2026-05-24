@@ -1423,10 +1423,10 @@
       const reboundEmpty = "待输入每测区回弹值和强度换算值。";
       if (strengths.length) {
         setResultHtml("reboundCoreResult", `<div class="formula-output">${
-          formulaStatement("同条件试块修正系数（7-17）", "按课堂简化，用各测区回弹平均值除以对应强度换算值后取平均。", "\\eta=\\frac{1}{n}\\sum_{i=1}^{n}\\frac{R_{ma,i}}{f_{cu,i}^{c}}")
+          formulaStatement("同条件试块修正系数（7-17）", "原公式按指导书保留；代入时用已有的回弹平均值与强度换算值作对应比值展示。", "\\eta=\\frac{1}{n}\\sum_{i=1}^{n}\\frac{f_{cu,i}}{f_{cu,i}^{c}}")
         }${
           formulaLine("修正系数", "\\eta", `\\frac{${ratioTexPairs(corePairs)}}{${corePairs.length}}`, fmt(coreFactor, 2))
-        }${noteBlock("式中 Rma,i 为第 i 个测区回弹平均值，fcuc,i 为对应测区强度换算值。该系数只用于报告中展示修正系数计算过程，不再反向改变上表强度换算值。")}</div>`);
+        }${noteBlock("式中 fcu,i 为第 i 个同条件试块抗压强度，fcuc,i 为对应部位回弹强度换算值。本报告按课堂简化，用已知回弹平均值代入 fcu,i 位置展示计算过程；该系数不再反向改变上表强度换算值。")}</div>`);
         setResultHtml("reboundMeanResult", `<div class="formula-output">${
           formulaLine("强度换算值平均值", "m_{fcu}=\\frac{\\sum f_{cu,i}^{c}}{n}", `\\frac{${texSum(strengths, 1)}}{${strengths.length}}`, `${fmt(avg, 1)}\\,\\mathrm{MPa}`)
         }${noteBlock(`其中 fcuc,i 为各测区混凝土强度换算值。${autoWarnings.size ? "\n" + [...autoWarnings].join("\n") : ""}`)}</div>`);
