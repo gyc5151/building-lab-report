@@ -1963,15 +1963,45 @@
       if (preview) preview.innerHTML = `<img alt="上传图片" src="${src}">`;
     }
 
+    const REBOUND_DEMO_DATA = {
+      carbonationAvg: "0.5",
+      angle: "-90",
+      pourFace: "top",
+      strengthMode: "auto",
+      pumpMode: "auto",
+      coreFactor: "",
+      reboundRows: [
+        ["43", "40", "42", "45", "40", "40", "43", "35", "49", "43"],
+        ["44", "35", "45", "45", "41", "42", "38", "45", "45", "42"],
+        ["45", "47", "48", "46", "40", "42", "44", "31", "46", "43"],
+        ["35", "45", "45", "44", "45", "48", "45", "47", "46", "48"],
+        ["36", "44", "45", "43", "42", "41", "44", "45", "44", "46"],
+        ["38", "48", "43", "45", "46", "45", "44", "40", "46", "45"],
+        ["40", "45", "46", "44", "43", "45", "47", "40", "46", "46"],
+        ["45", "48", "47", "42", "45", "43", "46", "45", "45", "42"],
+        ["43", "42", "46", "46", "42", "45", "41", "42", "48", "45"],
+        ["45", "42", "46", "48", "48", "51", "44", "40", "45", "44"],
+        ["45", "46", "46", "41", "44", "50", "48", "40", "40", "46"],
+        ["40", "46", "46", "44", "42", "45", "39", "43", "45", "47"],
+        ["33", "43", "44", "47", "39", "46", "42", "38", "42", "45"],
+        ["34", "48", "46", "47", "43", "46", "43", "45", "45", "48"],
+        ["34", "43", "48", "41", "43", "45", "42", "40", "45", "43"],
+        ["38", "47", "47", "40", "44", "46", "42", "44", "40", "50"]
+      ]
+    };
+
     function fillDemoData() {
       const id = activeId;
       if (id === "rebound") {
-        for (let c = 0; c < 10; c++) {
-          for (let r = 0; r < 16; r++) setValue(`r_${r}_${c}`, 32 + c * 0.6 + (r % 5) * 0.7, "rebound");
-          setValue(`rebound_calc_3_${c}`, 1.5, "rebound");
-          setValue(`rebound_calc_4_${c}`, 0, "rebound");
-          setValue(`rebound_calc_5_${c}`, 28 + c * 0.8, "rebound");
-        }
+        setValue("carbonationAvg", REBOUND_DEMO_DATA.carbonationAvg, "rebound");
+        setValue("angle", REBOUND_DEMO_DATA.angle, "rebound");
+        setValue("pourFace", REBOUND_DEMO_DATA.pourFace, "rebound");
+        setValue("strengthMode", REBOUND_DEMO_DATA.strengthMode, "rebound");
+        setValue("pumpMode", REBOUND_DEMO_DATA.pumpMode, "rebound");
+        setValue("coreFactor", REBOUND_DEMO_DATA.coreFactor, "rebound");
+        REBOUND_DEMO_DATA.reboundRows.forEach((row, r) => {
+          row.forEach((val, c) => setValue(`r_${r}_${c}`, val, "rebound"));
+        });
       } else if (id === "carbonation") {
         for (let i = 0; i < 6; i++) for (let j = 0; j < 3; j++) setValue(`carb_${i}_${j}`, (1.2 + i * 0.2 + j * 0.1).toFixed(1), "carbonation");
       } else if (id === "cover") {
