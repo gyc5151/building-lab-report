@@ -928,9 +928,8 @@
         </div>`;
     }
 
-    function ratioTex(n, count = 6) {
-      if (!Number.isFinite(n)) return "\\cdots";
-      return Array.from({ length: count }, () => fmt(n, 2)).join(" + ");
+    function ratioTexPairs(pairs) {
+      return pairs.length ? pairs.map(pair => `\\frac{${fmt(pair.rm, 1)}}{${fmt(pair.strength, 1)}}`).join(" + ") : "\\cdots";
     }
 
     function noteBlock(text) {
@@ -1347,13 +1346,12 @@
       const face = value("pourFace", "rebound") || "side";
       const strengthMode = value("strengthMode", "rebound") || "auto";
       const pumpMode = value("pumpMode", "rebound") || "auto";
-      const coreFactor = num(value("coreFactor", "rebound")) || 1;
-      if (value("coreFactor", "rebound") === "") setValue("coreFactor", fmt(coreFactor, 2), "rebound");
       const avgCarb = num(value("carbonationAvg", "rebound"));
       const useAverageCarbonation = Number.isFinite(avgCarb) && avgCarb >= 0 && avgCarb <= 2;
       const strengths = [];
       const strengthSeries = [];
       const reboundMeans = [];
+      const corePairs = [];
       const autoWarnings = new Set();
       for (let c = 0; c < 10; c++) {
         const vals = Array.from({ length: 16 }, (_, r) => num(value(`r_${r}_${c}`, "rebound"))).filter(Number.isFinite);
@@ -1405,12 +1403,14 @@
             if (Number.isFinite(pump)) setValue(`rebound_calc_4_${c}`, fmt(pump, 2), "rebound");
           }
         }
-        const correctedF = Number.isFinite(tableStrength) ? tableStrength * coreFactor : NaN;
-        if (Number.isFinite(correctedF)) {
-          strengths.push(correctedF);
-          strengthSeries.push({ x: c + 1, y: correctedF });
+        if (Number.isFinite(tableStrength)) {
+          strengths.push(tableStrength);
+          strengthSeries.push({ x: c + 1, y: tableStrength });
+          if (Number.isFinite(rm) && tableStrength !== 0) corePairs.push({ rm, strength: tableStrength, ratio: rm / tableStrength });
         }
       }
+      const coreFactor = mean(corePairs.map(pair => pair.ratio));
+      if (Number.isFinite(coreFactor)) setValue("coreFactor", fmt(coreFactor, 2), "rebound");
       const avg = mean(strengths);
       const sd = sampleStd(strengths);
       const minF = strengths.length ? Math.min(...strengths) : NaN;
@@ -1423,10 +1423,10 @@
       const reboundEmpty = "待输入每测区回弹值和强度换算值。";
       if (strengths.length) {
         setResultHtml("reboundCoreResult", `<div class="formula-output">${
-          formulaStatement("同条件试块修正系数（7-17）", "采用已有强度换算值对应的同条件试块修正系数，未单独实测时按课堂简化取 1.00。", "\\eta=\\frac{1}{n}\\sum_{i=1}^{n}\\frac{f_{cu,i}}{f_{cu,i}^{c}}")
+          formulaStatement("同条件试块修正系数（7-17）", "按课堂简化，用各测区回弹平均值除以对应强度换算值后取平均。", "\\eta=\\frac{1}{n}\\sum_{i=1}^{n}\\frac{R_{ma,i}}{f_{cu,i}^{c}}")
         }${
-          formulaLine("修正系数", "\\eta", `\\frac{${ratioTex(coreFactor, Math.min(6, strengths.length))}}{${Math.min(6, strengths.length)}}`, fmt(coreFactor, 2))
-        }${noteBlock("式中 fcu,i 为第 i 个同条件试块抗压强度，fcuc,i 为对应部位回弹强度换算值。")}</div>`);
+          formulaLine("修正系数", "\\eta", `\\frac{${ratioTexPairs(corePairs)}}{${corePairs.length}}`, fmt(coreFactor, 2))
+        }${noteBlock("式中 Rma,i 为第 i 个测区回弹平均值，fcuc,i 为对应测区强度换算值。该系数只用于报告中展示修正系数计算过程，不再反向改变上表强度换算值。")}</div>`);
         setResultHtml("reboundMeanResult", `<div class="formula-output">${
           formulaLine("强度换算值平均值", "m_{fcu}=\\frac{\\sum f_{cu,i}^{c}}{n}", `\\frac{${texSum(strengths, 1)}}{${strengths.length}}`, `${fmt(avg, 1)}\\,\\mathrm{MPa}`)
         }${noteBlock(`其中 fcuc,i 为各测区混凝土强度换算值。${autoWarnings.size ? "\n" + [...autoWarnings].join("\n") : ""}`)}</div>`);
