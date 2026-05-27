@@ -409,6 +409,22 @@
       height: 280px;
     }
 
+    .scheme-sketch {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      margin: 10px 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .scheme-sketch svg {
+      display: block;
+      width: 100%;
+      min-width: 720px;
+      height: auto;
+    }
+
     .upload-preview {
       min-height: 130px;
       border: 1px dashed #94a3b8;
@@ -1179,6 +1195,74 @@
       `);
     }
 
+    function bridgeStaticSketchHtml() {
+      return `<div class="scheme-sketch" aria-label="桥梁静载试验结构简图">
+        <svg viewBox="0 0 980 360" role="img" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrowDown" markerWidth="10" markerHeight="10" refX="5" refY="8" orient="auto">
+              <path d="M1,1 L9,1 L5,9 Z" fill="#111827"></path>
+            </marker>
+            <marker id="arrowBothStart" markerWidth="9" markerHeight="9" refX="2" refY="4.5" orient="auto">
+              <path d="M8,1 L2,4.5 L8,8" fill="none" stroke="#475569" stroke-width="1.5"></path>
+            </marker>
+            <marker id="arrowBothEnd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+              <path d="M1,1 L7,4.5 L1,8" fill="none" stroke="#475569" stroke-width="1.5"></path>
+            </marker>
+          </defs>
+          <rect x="1" y="1" width="978" height="358" fill="#fff"></rect>
+          <text x="490" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#111827">桥梁静载试验结构简图及测点布置</text>
+          <text x="490" y="60" text-anchor="middle" font-size="13" fill="#475569">侧面简化图：按本组测点布置绘制，实测荷载以数据表输入为准</text>
+
+          <line x1="130" y1="155" x2="850" y2="155" stroke="#111827" stroke-width="7" stroke-linecap="round"></line>
+          <line x1="130" y1="167" x2="850" y2="167" stroke="#64748b" stroke-width="2"></line>
+          <path d="M130 165 L100 220 L160 220 Z" fill="none" stroke="#111827" stroke-width="2.5"></path>
+          <circle cx="850" cy="185" r="12" fill="none" stroke="#111827" stroke-width="2.5"></circle>
+          <line x1="810" y1="220" x2="890" y2="220" stroke="#111827" stroke-width="2.5"></line>
+          <line x1="104" y1="230" x2="158" y2="220" stroke="#64748b" stroke-width="2"></line>
+          <line x1="824" y1="230" x2="884" y2="220" stroke="#64748b" stroke-width="2"></line>
+          <text x="130" y="250" text-anchor="middle" font-size="14" fill="#111827">左支座</text>
+          <text x="850" y="250" text-anchor="middle" font-size="14" fill="#111827">右支座</text>
+
+          <line x1="310" y1="84" x2="310" y2="140" stroke="#111827" stroke-width="2.5" marker-end="url(#arrowDown)"></line>
+          <line x1="490" y1="84" x2="490" y2="140" stroke="#111827" stroke-width="2.5" marker-end="url(#arrowDown)"></line>
+          <line x1="670" y1="84" x2="670" y2="140" stroke="#111827" stroke-width="2.5" marker-end="url(#arrowDown)"></line>
+          <text x="490" y="78" text-anchor="middle" font-size="15" font-weight="700" fill="#111827">分级集中加载</text>
+          <text x="490" y="104" text-anchor="middle" font-size="13" fill="#475569">P1、P2、P3 三级加载</text>
+
+          <line x1="130" y1="285" x2="850" y2="285" stroke="#475569" stroke-width="1.4" marker-start="url(#arrowBothStart)" marker-end="url(#arrowBothEnd)"></line>
+          <line x1="130" y1="265" x2="130" y2="300" stroke="#475569" stroke-width="1"></line>
+          <line x1="310" y1="265" x2="310" y2="300" stroke="#475569" stroke-width="1"></line>
+          <line x1="490" y1="265" x2="490" y2="300" stroke="#475569" stroke-width="1"></line>
+          <line x1="850" y1="265" x2="850" y2="300" stroke="#475569" stroke-width="1"></line>
+          <text x="490" y="308" text-anchor="middle" font-size="13" fill="#475569">计算跨径 L</text>
+          <text x="310" y="276" text-anchor="middle" font-size="13" fill="#475569">L/4</text>
+          <text x="490" y="276" text-anchor="middle" font-size="13" fill="#475569">L/2</text>
+
+          <circle cx="490" cy="155" r="7" fill="#2563eb"></circle>
+          <circle cx="310" cy="155" r="7" fill="#2563eb"></circle>
+          <circle cx="330" cy="155" r="7" fill="#2563eb"></circle>
+          <circle cx="850" cy="155" r="7" fill="#2563eb"></circle>
+          <text x="490" y="132" text-anchor="middle" font-size="13" fill="#1d4ed8">应变1：1/2跨</text>
+          <text x="310" y="132" text-anchor="middle" font-size="13" fill="#1d4ed8">应变2、3：1/4外/内侧</text>
+          <text x="850" y="132" text-anchor="middle" font-size="13" fill="#1d4ed8">应变4：支座</text>
+
+          <line x1="294" y1="170" x2="294" y2="214" stroke="#dc2626" stroke-width="2"></line>
+          <rect x="278" y="214" width="32" height="34" rx="3" fill="none" stroke="#dc2626" stroke-width="2"></rect>
+          <line x1="350" y1="170" x2="350" y2="214" stroke="#dc2626" stroke-width="2"></line>
+          <rect x="334" y="214" width="32" height="34" rx="3" fill="none" stroke="#dc2626" stroke-width="2"></rect>
+          <text x="322" y="264" text-anchor="middle" font-size="13" fill="#b91c1c">1/4跨挠度仪：外侧、内侧</text>
+
+          <rect x="690" y="236" width="230" height="78" fill="#f8fafc" stroke="#cbd5e1" rx="6"></rect>
+          <circle cx="712" cy="257" r="6" fill="#2563eb"></circle>
+          <text x="728" y="262" font-size="13" fill="#111827">蓝点：应变测点，共4个</text>
+          <line x1="706" y1="284" x2="718" y2="284" stroke="#dc2626" stroke-width="2"></line>
+          <rect x="704" y="286" width="16" height="18" fill="none" stroke="#dc2626" stroke-width="1.8"></rect>
+          <text x="728" y="300" font-size="13" fill="#111827">红色：挠度仪，共2个</text>
+          <text x="490" y="338" text-anchor="middle" font-size="13" fill="#475569">说明：别组测点可能不同，本图仅对应本组记录表的 4 个应变测点与 2 个挠度测点。</text>
+        </svg>
+      </div>`;
+    }
+
     function renderBridge() {
       const staticRows = [1, 2, 3].map((level, i) => `
         <tr>
@@ -1199,14 +1283,14 @@
         <div class="section"><h3>桥梁动静载实验之一：静载试验</h3></div>
         <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.staticPurpose)}</div>
         <div class="section"><h3>二、实验设备及构件名称</h3>${prefilled(prefill.bridge.equipment)}${textarea("bridgeMember", "填写构件名称、尺寸和加载设备。", 2)}</div>
-        <div class="section"><h3>三、结构简图及实验方案设计（草图及文字说明）</h3>${prefilled(prefill.bridge.scheme)}${uploadBlock("bridgeStatic")}</div>
+        <div class="section"><h3>三、结构简图及实验方案设计（草图及文字说明）</h3>${prefilled(prefill.bridge.scheme)}${bridgeStaticSketchHtml()}${uploadBlock("bridgeStatic")}</div>
         <div class="section"><h3>四、画出构件截面简图并标注尺寸，计算截面的中性轴及惯性矩。</h3><div class="result-box" id="bridgeSectionResult">待计算。</div>${textarea("bridgeSection", "补充现场草图或尺寸说明。", 2)}</div>
         <div class="section">
           <h3>五、实验数据</h3>
           <div class="wide-scroll"><table><tr><th>加载等级</th><th>荷载 / kN</th><th>应变 1/2 跨 / με</th><th>应变 1/4 外侧 / με</th><th>应变 1/4 内侧 / με</th><th>应变 支座 / με</th><th>挠度 1/4 外侧 / mm</th><th>挠度 1/4 内侧 / mm</th></tr>${staticRows}</table></div>
         </div>
         <div class="section"><h3>六、计算各测点在最大级荷载下的理论应力值、理论应变值</h3><div class="result-box" id="bridgeStaticResult">待输入实验数据。</div></div>
-        <div class="section"><h3>七、分析以上理论值和实测值误差产生的原因</h3>${prefilled("误差可能来自加载位置偏差、支座实际约束与理论模型不一致、材料弹性模量差异、仪器读数误差、传感器粘贴质量、构件初始缺陷、温度影响和加载持荷时间不足等。实验后应结合实测误差大小进一步分析。")}</div>
+        <div class="section"><h3>七、分析以上理论值和实测值误差产生的原因</h3><div class="result-box" id="bridgeErrorResult">待输入静载实验数据。</div></div>
         <div class="canvas-wrap"><canvas id="bridgeStaticChart" width="900" height="330"></canvas></div>
         <div class="section"><h3>桥梁动静载实验之二：动载试验</h3></div>
         <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.dynamicPurpose)}</div>
@@ -1652,6 +1736,19 @@
       </div>`;
     }
 
+    function bridgeErrorAnalysisHtml(last, strainAvg, strainTheory, strainErr, deflAvgAbs, deflTheory, deflErrAbs) {
+      if (!last) return "待输入静载实验数据。";
+      const strainLevel = Math.abs(strainErr) > 50 ? "明显偏大" : Math.abs(strainErr) > 20 ? "较大" : "较小";
+      const deflLevel = Math.abs(deflErrAbs) > 50 ? "明显偏大" : Math.abs(deflErrAbs) > 20 ? "较大" : "较小";
+      const strainDirection = strainErr > 0 ? "大于" : "小于";
+      const deflDirection = deflErrAbs > 0 ? "大于" : "小于";
+      return `<div class="formula-output">
+        ${formulaStatement("误差分析依据", "按最大级荷载下实测平均值与理论值比较。挠度仪读数含方向，误差分析按挠度绝对值比较变形大小。", "\\eta=\\frac{x_{\\text{实测}}-x_{\\text{理论}}}{x_{\\text{理论}}}\\times100\\%")}
+        ${formulaLine("应变相对误差", "\\eta_\\varepsilon", `\\frac{${fmt(strainAvg, 1)}-${fmt(strainTheory, 1)}}{${fmt(strainTheory, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
+        ${formulaLine("挠度相对误差", "\\eta_f", `\\frac{${fmt(deflAvgAbs, 3)}-${fmt(deflTheory, 3)}}{${fmt(deflTheory, 3)}}\\times100\\%`, `${fmt(deflErrAbs, 2)}\\%`)}
+        ${noteBlock(`最大级荷载 P = ${fmt(last.load, 1)} kN。应变误差${strainLevel}，实测平均应变${strainDirection}理论应变；挠度误差${deflLevel}，实测挠度绝对值${deflDirection}理论计算值。\n主要原因可归纳为：1. 本组应变测点不是同一截面，包含 1/2 跨、1/4 跨外侧、1/4 跨内侧和支座处；其中支座处弯矩理论上较小，直接与最大截面的理论应变平均比较，会使实测平均值偏小。2. 1/4 跨外侧、内侧位于不同梁或不同横向位置，实际 4 根 T 梁横向分配不完全均匀，外侧梁与内侧梁受力差别会造成两点读数差异。3. 理论计算采用简化梁模型和等效截面，实际支座约束、横隔梁连接、加载接触面积和结构初始缺陷与理想模型不完全一致。4. 挠度仪读数含方向，若仪器正负方向与理论挠度方向相反，应统一符号后按变形绝对值分析；百分表初读数、支架稳定性、读数回零和持荷时间也会影响挠度误差。5. 应变片粘贴质量、导线接触、温度漂移、仪器调零以及加载砝码实际值都会引起实测值波动。\n结论：本次静载理论值与实测值差异主要来自测点位置混合比较、横向分配不均和现场测试条件。判断结果时应重点看各级荷载下应变、挠度随荷载增加的变化趋势是否基本一致，而不是只依据单个测点或单次读数。`)}</div>`;
+    }
+
     function calcBridge() {
       setResultHtml("bridgeSectionResult", bridgeSectionHtml());
       const staticRows = [];
@@ -1662,30 +1759,34 @@
         if ([load, ...strains, ...defls].some(Number.isFinite)) staticRows.push({ i, load, strains, defls });
       }
       const last = staticRows[staticRows.length - 1];
-      const staticLoads = [9, 18, 27];
-      const theoryStrain = staticLoads.map(p => 98 * p / 36);
-      const theoryStress = staticLoads.map(p => 3.2 * p / 36);
-      const theoryDeflQ = staticLoads.map(p => 0.3 * p / 36);
+      const theoryStrain = staticRows.map(r => 98 * r.load / 36);
+      const theoryStress = staticRows.map(r => 3.2 * r.load / 36);
+      const theoryDeflQ = staticRows.map(r => 0.3 * r.load / 36);
       const measuredStrains = last?.strains.filter(Number.isFinite) || [];
       const measuredDefls = last?.defls.filter(Number.isFinite) || [];
       const strainAvg = mean(measuredStrains);
       const deflAvg = mean(measuredDefls);
+      const deflAvgAbs = mean(measuredDefls.map(Math.abs));
       const ts = last ? theoryStrain[last.i] : NaN;
       const td = last ? theoryDeflQ[last.i] : NaN;
       const strainErr = Number.isFinite(ts) && ts !== 0 ? (strainAvg - ts) / ts * 100 : NaN;
-      const deflErr = Number.isFinite(td) && td !== 0 ? (deflAvg - td) / td * 100 : NaN;
+      const deflErrAbs = Number.isFinite(td) && td !== 0 ? (deflAvgAbs - td) / td * 100 : NaN;
+      const loadListTex = staticRows.map(r => fmt(r.load, 1)).join(",");
       setResultHtml("bridgeStaticResult", staticRows.length
         ? `<div class="formula-output">
-            ${formulaStatement("分级加载", "本次静载试验采用 3 级累计加载。", "P=9,18,27\\,\\mathrm{kN}")}
+            ${formulaStatement("分级加载", "本次静载试验采用 3 级累计加载，按表中实际荷载计算。", `P=${loadListTex}\\,\\mathrm{kN}`)}
             ${formulaLine("理论应变等比例换算", "\\varepsilon_t(P)=98\\times\\frac{P}{36}", `98\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(ts, 1)}\\,\\mu\\varepsilon`)}
             ${formulaLine("理论应力等比例换算", "\\sigma_t(P)=3.2\\times\\frac{P}{36}", `3.2\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(theoryStress[last.i], 2)}\\,\\mathrm{MPa}`)}
             ${formulaLine("最大级平均实测应变", "\\bar\\varepsilon=\\frac{\\sum\\varepsilon_i}{n}", `\\frac{${texSum(measuredStrains, 1)}}{${measuredStrains.length || "n"}}`, `${fmt(strainAvg, 1)}\\,\\mu\\varepsilon`)}
             ${formulaLine("应变误差", "\\eta_\\varepsilon=\\frac{\\bar\\varepsilon-\\varepsilon_t}{\\varepsilon_t}\\times100\\%", `\\frac{${fmt(strainAvg, 1)}-${fmt(ts, 1)}}{${fmt(ts, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
             ${formulaLine("1/4 跨理论挠度", "f_t(P)=0.3\\times\\frac{P}{36}", `0.3\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(td, 3)}\\,\\mathrm{mm}`)}
             ${formulaLine("1/4 跨平均实测挠度", "\\bar f=\\frac{f_{\\text{外侧}}+f_{\\text{内侧}}}{2}", `\\frac{${texSum(measuredDefls, 3)}}{${measuredDefls.length || "n"}}`, `${fmt(deflAvg, 3)}\\,\\mathrm{mm}`)}
-            ${formulaLine("挠度误差", "\\eta_f=\\frac{\\bar f-f_t}{f_t}\\times100\\%", `\\frac{${fmt(deflAvg, 3)}-${fmt(td, 3)}}{${fmt(td, 3)}}\\times100\\%`, `${fmt(deflErr, 2)}\\%`)}
+            ${formulaLine("挠度绝对值误差", "\\eta_f=\\frac{|\\bar f|-f_t}{f_t}\\times100\\%", `\\frac{${fmt(deflAvgAbs, 3)}-${fmt(td, 3)}}{${fmt(td, 3)}}\\times100\\%`, `${fmt(deflErrAbs, 2)}\\%`)}
             ${noteBlock("测点布置：应变测点 4 个，分别为 1/2 跨、1/4 跨外侧、1/4 跨内侧、支座处；挠度仪 2 个，均布置在 1/4 跨处（外侧、靠内侧）。")}
           </div>`
+        : "待输入静载实验数据。");
+      setResultHtml("bridgeErrorResult", staticRows.length
+        ? bridgeErrorAnalysisHtml(last, strainAvg, ts, strainErr, deflAvgAbs, td, deflErrAbs)
         : "待输入静载实验数据。");
       drawLineChart("bridgeStaticChart", [
         { name: "平均实测应变", data: staticRows.filter(r => Number.isFinite(r.load)).map(r => ({ x: r.load, y: mean(r.strains) })) },
