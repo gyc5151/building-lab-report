@@ -813,7 +813,7 @@
         staticPurpose: "通过静载试验掌握 T 型梁模型在分级荷载作用下的应变和挠度响应，比较理论值与实测值，分析结构工作状态。",
         dynamicPurpose: "通过动载试验测定桥梁模型的动力响应，识别结构自振频率、阻尼比、动应变幅值和冲击系数。",
         equipment: "无线静态应变测试系统、静态应变测试系统、无线动态应变测试分析系统、百分表或位移计、加载设备、动态传感器及采集软件。",
-        scheme: "静载试验采用跨中集中荷载，分 3 级加载，示例累计荷载为 12kN、24kN、36kN。每级加载完成后持荷并读取应变和挠度。动载试验可采用脉动测试和跑车试验，采集跨中动态响应和动应变信号，并进行 FFT 分析。"
+        scheme: "静载试验采用跨中集中荷载，分 3 级加载，累计荷载为 9kN、18kN、27kN。侧面看共有 4 根 T 梁。应变测点共 4 个：1/2 跨处 1 个，1/4 跨处 2 个（外侧、靠内侧），支座处 1 个；挠度在 1/4 跨处布置 2 个仪器（外侧、靠内侧）。动载试验可采用脉动测试和跑车试验，采集跨中动态响应和动应变信号，并进行 FFT 分析。"
       }
     };
 
@@ -1181,7 +1181,16 @@
 
     function renderBridge() {
       const staticRows = [1, 2, 3].map((level, i) => `
-        <tr><th>${level} 级荷载</th><td>${input(`bridge_load_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_defl_${i}`, "number", 'step="0.001"')}</td><td>${input(`bridge_theory_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`bridge_theory_defl_${i}`, "number", 'step="0.001"')}</td></tr>
+        <tr>
+          <th>${level} 级荷载</th>
+          <td>${input(`bridge_load_${i}`, "number", 'step="0.1"')}</td>
+          <td>${input(`bridge_strain_mid_${i}`, "number", 'step="0.1"')}</td>
+          <td>${input(`bridge_strain_q_out_${i}`, "number", 'step="0.1"')}</td>
+          <td>${input(`bridge_strain_q_in_${i}`, "number", 'step="0.1"')}</td>
+          <td>${input(`bridge_strain_support_${i}`, "number", 'step="0.1"')}</td>
+          <td>${input(`bridge_defl_q_out_${i}`, "number", 'step="0.001"')}</td>
+          <td>${input(`bridge_defl_q_in_${i}`, "number", 'step="0.001"')}</td>
+        </tr>
       `).join("");
       const dynamicRows = [1, 2, 3].map((level, i) => `
         <tr><th>第 ${level} 次</th><td>${input(`dyn_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`dyn_defl_${i}`, "number", 'step="0.001"')}</td><td>${input(`dyn_freq_${i}`, "number", 'step="0.01"')}</td><td>${input(`dyn_damping_${i}`, "number", 'step="0.0001"')}</td></tr>
@@ -1191,10 +1200,10 @@
         <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.staticPurpose)}</div>
         <div class="section"><h3>二、实验设备及构件名称</h3>${prefilled(prefill.bridge.equipment)}${textarea("bridgeMember", "填写构件名称、尺寸和加载设备。", 2)}</div>
         <div class="section"><h3>三、结构简图及实验方案设计（草图及文字说明）</h3>${prefilled(prefill.bridge.scheme)}${uploadBlock("bridgeStatic")}</div>
-        <div class="section"><h3>四、画出构件截面简图并标注尺寸，计算截面的中性轴及惯性矩。</h3>${textarea("bridgeSection", "实验后填写截面尺寸、中性轴和惯性矩计算过程。")}</div>
+        <div class="section"><h3>四、画出构件截面简图并标注尺寸，计算截面的中性轴及惯性矩。</h3><div class="result-box" id="bridgeSectionResult">待计算。</div>${textarea("bridgeSection", "补充现场草图或尺寸说明。", 2)}</div>
         <div class="section">
           <h3>五、实验数据</h3>
-          <table><tr><th>加载等级</th><th>荷载 / kN</th><th>应变测量值 / με</th><th>挠度测量值 / mm</th><th>理论应变 / με</th><th>理论挠度 / mm</th></tr>${staticRows}</table>
+          <div class="wide-scroll"><table><tr><th>加载等级</th><th>荷载 / kN</th><th>应变 1/2 跨 / με</th><th>应变 1/4 外侧 / με</th><th>应变 1/4 内侧 / με</th><th>应变 支座 / με</th><th>挠度 1/4 外侧 / mm</th><th>挠度 1/4 内侧 / mm</th></tr>${staticRows}</table></div>
         </div>
         <div class="section"><h3>六、计算各测点在最大级荷载下的理论应力值、理论应变值</h3><div class="result-box" id="bridgeStaticResult">待输入实验数据。</div></div>
         <div class="section"><h3>七、分析以上理论值和实测值误差产生的原因</h3>${prefilled("误差可能来自加载位置偏差、支座实际约束与理论模型不一致、材料弹性模量差异、仪器读数误差、传感器粘贴质量、构件初始缺陷、温度影响和加载持荷时间不足等。实验后应结合实测误差大小进一步分析。")}</div>
@@ -1623,31 +1632,65 @@
       if (el) el.textContent = text;
     }
 
+    function bridgeSectionHtml() {
+      const B = 1600, hf = 70, bw = 80, hw = 370, n = 4;
+      const Af = B * hf;
+      const Aw = n * bw * hw;
+      const A = Af + Aw;
+      const yf = hf / 2;
+      const yw = hf + hw / 2;
+      const ybar = (Af * yf + Aw * yw) / A;
+      const If = B * hf ** 3 / 12 + Af * (ybar - yf) ** 2;
+      const Iw = n * (bw * hw ** 3 / 12 + bw * hw * (yw - ybar) ** 2);
+      const I = If + Iw;
+      return `<div class="formula-output">
+        ${formulaStatement("等效截面说明", "按指导书模型和课堂简化，侧面 4 根 T 梁合并为等效截面：顶板 1600mm×70mm，4 条腹板各按 80mm×370mm 计。中性轴自顶面向下量。", "A=A_f+4A_w")}
+        ${formulaLine("截面面积", "A", `${B}\\times${hf}+4\\times${bw}\\times${hw}`, `${fmt(A, 0)}\\,\\mathrm{mm^2}`)}
+        ${formulaLine("中性轴位置", "\\bar y=\\frac{\\sum A_i y_i}{\\sum A_i}", `\\frac{${fmt(Af, 0)}\\times${fmt(yf, 1)}+${fmt(Aw, 0)}\\times${fmt(yw, 1)}}{${fmt(A, 0)}}`, `${fmt(ybar, 1)}\\,\\mathrm{mm}`)}
+        ${formulaLine("截面惯性矩", "I_x=\\sum\\left(I_{xi}+A_i(y_i-\\bar y)^2\\right)", `${fmt(If, 0)}+${fmt(Iw, 0)}`, `${fmt(I, 0)}\\,\\mathrm{mm^4}`)}
+        ${noteBlock("计算结果：中性轴距顶面约 148.1mm，等效截面惯性矩 Ix ≈ 4.182×10^9 mm^4。具体尺寸若以现场量测为准，可在草图说明中补充。")}
+      </div>`;
+    }
+
     function calcBridge() {
+      setResultHtml("bridgeSectionResult", bridgeSectionHtml());
       const staticRows = [];
       for (let i = 0; i < 3; i++) {
         const load = num(value(`bridge_load_${i}`, "bridge"));
-        const strain = num(value(`bridge_strain_${i}`, "bridge"));
-        const defl = num(value(`bridge_defl_${i}`, "bridge"));
-        const ts = num(value(`bridge_theory_strain_${i}`, "bridge"));
-        const td = num(value(`bridge_theory_defl_${i}`, "bridge"));
-        if ([load, strain, defl, ts, td].some(Number.isFinite)) staticRows.push({ i, load, strain, defl, ts, td });
+        const strains = ["mid", "q_out", "q_in", "support"].map(key => num(value(`bridge_strain_${key}_${i}`, "bridge")));
+        const defls = ["q_out", "q_in"].map(key => num(value(`bridge_defl_${key}_${i}`, "bridge")));
+        if ([load, ...strains, ...defls].some(Number.isFinite)) staticRows.push({ i, load, strains, defls });
       }
       const last = staticRows[staticRows.length - 1];
-      const strainErr = last && Number.isFinite(last.ts) && last.ts !== 0 ? (last.strain - last.ts) / last.ts * 100 : NaN;
-      const deflErr = last && Number.isFinite(last.td) && last.td !== 0 ? (last.defl - last.td) / last.td * 100 : NaN;
+      const staticLoads = [9, 18, 27];
+      const theoryStrain = staticLoads.map(p => 98 * p / 36);
+      const theoryStress = staticLoads.map(p => 3.2 * p / 36);
+      const theoryDeflQ = staticLoads.map(p => 0.3 * p / 36);
+      const measuredStrains = last?.strains.filter(Number.isFinite) || [];
+      const measuredDefls = last?.defls.filter(Number.isFinite) || [];
+      const strainAvg = mean(measuredStrains);
+      const deflAvg = mean(measuredDefls);
+      const ts = last ? theoryStrain[last.i] : NaN;
+      const td = last ? theoryDeflQ[last.i] : NaN;
+      const strainErr = Number.isFinite(ts) && ts !== 0 ? (strainAvg - ts) / ts * 100 : NaN;
+      const deflErr = Number.isFinite(td) && td !== 0 ? (deflAvg - td) / td * 100 : NaN;
       setResultHtml("bridgeStaticResult", staticRows.length
         ? `<div class="formula-output">
-            ${formulaLine("应变误差", "\\eta_\\varepsilon=\\frac{\\varepsilon_{\\text{实测}}-\\varepsilon_{\\text{理论}}}{\\varepsilon_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(last.strain, 1)}-${fmt(last.ts, 1)}}{${fmt(last.ts, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
-            ${formulaLine("挠度误差", "\\eta_f=\\frac{f_{\\text{实测}}-f_{\\text{理论}}}{f_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(last.defl, 3)}-${fmt(last.td, 3)}}{${fmt(last.td, 3)}}\\times100\\%`, `${fmt(deflErr, 2)}\\%`)}
-            ${formulaLine("理论应力", "\\sigma=E\\varepsilon", "32.5\\,\\mathrm{GPa}\\times\\varepsilon_{\\text{理论}}", "\\text{按最大级荷载理论应变代入}")}
-            ${noteBlock(`最大级荷载 P = ${fmt(last.load, 1)} kN。\nC40 混凝土弹性模量可取 E = 32.5GPa，具体以课堂要求为准。`)}
+            ${formulaStatement("分级加载", "本次静载试验采用 3 级累计加载。", "P=9,18,27\\,\\mathrm{kN}")}
+            ${formulaLine("理论应变等比例换算", "\\varepsilon_t(P)=98\\times\\frac{P}{36}", `98\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(ts, 1)}\\,\\mu\\varepsilon`)}
+            ${formulaLine("理论应力等比例换算", "\\sigma_t(P)=3.2\\times\\frac{P}{36}", `3.2\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(theoryStress[last.i], 2)}\\,\\mathrm{MPa}`)}
+            ${formulaLine("最大级平均实测应变", "\\bar\\varepsilon=\\frac{\\sum\\varepsilon_i}{n}", `\\frac{${texSum(measuredStrains, 1)}}{${measuredStrains.length || "n"}}`, `${fmt(strainAvg, 1)}\\,\\mu\\varepsilon`)}
+            ${formulaLine("应变误差", "\\eta_\\varepsilon=\\frac{\\bar\\varepsilon-\\varepsilon_t}{\\varepsilon_t}\\times100\\%", `\\frac{${fmt(strainAvg, 1)}-${fmt(ts, 1)}}{${fmt(ts, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
+            ${formulaLine("1/4 跨理论挠度", "f_t(P)=0.3\\times\\frac{P}{36}", `0.3\\times\\frac{${fmt(last.load, 1)}}{36}`, `${fmt(td, 3)}\\,\\mathrm{mm}`)}
+            ${formulaLine("1/4 跨平均实测挠度", "\\bar f=\\frac{f_{\\text{外侧}}+f_{\\text{内侧}}}{2}", `\\frac{${texSum(measuredDefls, 3)}}{${measuredDefls.length || "n"}}`, `${fmt(deflAvg, 3)}\\,\\mathrm{mm}`)}
+            ${formulaLine("挠度误差", "\\eta_f=\\frac{\\bar f-f_t}{f_t}\\times100\\%", `\\frac{${fmt(deflAvg, 3)}-${fmt(td, 3)}}{${fmt(td, 3)}}\\times100\\%`, `${fmt(deflErr, 2)}\\%`)}
+            ${noteBlock("测点布置：应变测点 4 个，分别为 1/2 跨、1/4 跨外侧、1/4 跨内侧、支座处；挠度仪 2 个，均布置在 1/4 跨处（外侧、靠内侧）。")}
           </div>`
         : "待输入静载实验数据。");
       drawLineChart("bridgeStaticChart", [
-        { name: "实测应变", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.strain)).map(r => ({ x: r.load, y: r.strain })) },
-        { name: "理论应变", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.ts)).map(r => ({ x: r.load, y: r.ts })) },
-        { name: "实测挠度", data: staticRows.filter(r => Number.isFinite(r.load) && Number.isFinite(r.defl)).map(r => ({ x: r.load, y: r.defl })) }
+        { name: "平均实测应变", data: staticRows.filter(r => Number.isFinite(r.load)).map(r => ({ x: r.load, y: mean(r.strains) })) },
+        { name: "理论应变", data: staticRows.map(r => ({ x: r.load, y: theoryStrain[r.i] })) },
+        { name: "1/4平均挠度", data: staticRows.filter(r => Number.isFinite(r.load)).map(r => ({ x: r.load, y: mean(r.defls) })) }
       ], "荷载 / kN", "应变 με 或挠度 mm");
 
       const dynRows = [];
@@ -2022,12 +2065,14 @@
           setValue(`pile_T_${i}`, (55 + i % 4).toFixed(1), "pile");
         }
       } else if (id === "bridge") {
-        [12, 24, 36].forEach((load, i) => {
+        [9, 18, 27].forEach((load, i) => {
           setValue(`bridge_load_${i}`, load, "bridge");
-          setValue(`bridge_strain_${i}`, [35, 68, 101][i], "bridge");
-          setValue(`bridge_defl_${i}`, [0.4, 0.82, 1.23][i], "bridge");
-          setValue(`bridge_theory_strain_${i}`, [34, 65, 98][i], "bridge");
-          setValue(`bridge_theory_defl_${i}`, [0.4, 0.8, 1.2][i], "bridge");
+          setValue(`bridge_strain_mid_${i}`, [25, 50, 74][i], "bridge");
+          setValue(`bridge_strain_q_out_${i}`, [23, 47, 71][i], "bridge");
+          setValue(`bridge_strain_q_in_${i}`, [24, 49, 73][i], "bridge");
+          setValue(`bridge_strain_support_${i}`, [6, 12, 18][i], "bridge");
+          setValue(`bridge_defl_q_out_${i}`, [0.075, 0.150, 0.225][i], "bridge");
+          setValue(`bridge_defl_q_in_${i}`, [0.080, 0.155, 0.230][i], "bridge");
           setValue(`dyn_strain_${i}`, [18, 21, 19][i], "bridge");
           setValue(`dyn_defl_${i}`, [0.18, 0.22, 0.2][i], "bridge");
           setValue(`dyn_freq_${i}`, [18.3, 18.6, 18.4][i], "bridge");
