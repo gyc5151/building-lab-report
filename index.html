@@ -1680,7 +1680,7 @@
         ${formulaStatement("误差分析依据", "按最大级荷载下实测平均值与理论值比较。挠度仪读数含方向，误差分析按挠度绝对值比较变形大小。", "\\eta=\\frac{x_{\\text{实测}}-x_{\\text{理论}}}{x_{\\text{理论}}}\\times100\\%")}
         ${formulaLine("应变相对误差", "\\eta_\\varepsilon", `\\frac{${fmt(strainAvg, 1)}-${fmt(strainTheory, 1)}}{${fmt(strainTheory, 1)}}\\times100\\%`, `${fmt(strainErr, 2)}\\%`)}
         ${formulaLine("挠度相对误差", "\\eta_f", `\\frac{${fmt(deflAvgAbs, 3)}-${fmt(deflTheory, 3)}}{${fmt(deflTheory, 3)}}\\times100\\%`, `${fmt(deflErrAbs, 2)}\\%`)}
-        ${noteBlock(`最大级荷载 P = ${fmt(last.load, 1)} kN。应变误差${strainLevel}，实测平均应变${strainDirection}理论应变；挠度误差${deflLevel}，实测挠度绝对值${deflDirection}理论计算值。\n主要原因可归纳为：1. 本组应变测点不是同一截面，包含 1/2 跨、1/4 跨外侧、1/4 跨内侧和支座处，应按各测点所在截面的弯矩分别比较，不能直接套用别组的采集读数。2. 支座处理论弯矩近似为 0，读数容易受局部约束、支座摩擦和粘贴位置影响；与跨中和 1/4 跨测点一起平均时，会拉低整体实测应变。3. 1/4 跨外侧、内侧位于不同梁或不同横向位置，实际 4 根 T 梁横向分配不完全均匀，外侧梁与内侧梁受力差别会造成两点读数差异。4. 理论计算采用简化梁模型和等效截面，实际支座约束、横隔梁连接、加载接触面积和结构初始缺陷与理想模型不完全一致。5. 挠度仪读数含方向，若仪器正负方向与理论挠度方向相反，应统一符号后按变形绝对值分析；百分表初读数、支架稳定性、读数回零和持荷时间也会影响挠度误差。\n结论：本次静载理论值与实测值差异主要来自测点位置差异、横向分配不均和现场测试条件。判断结果时应重点看各级荷载下应变、挠度随荷载增加的变化趋势是否基本一致，而不是只依据别组数据或单个测点读数。`)}</div>`;
+        ${noteBlock(`最大级荷载 P = ${fmt(last.load, 1)} kN。应变误差${strainLevel}，实测平均应变${strainDirection}理论应变；挠度误差${deflLevel}，实测挠度绝对值${deflDirection}理论计算值。\n主要原因可归纳为：1. 本组应变测点不是同一截面，包含 1/2 跨、1/4 跨外侧、1/4 跨内侧和支座处，应按各测点所在截面的弯矩分别比较，不能直接套用别组的采集读数。2. 加载钢条或垫条可能与梁面接触不密实，加载过程中若出现局部撬起、滑移或偏心受压，会使荷载没有完全按理论位置传递，导致应变和挠度偏离理论值。3. 应变片不一定贴在截面最外侧受拉或受压边缘，若离最外缘有距离，实际测得应变会小于按最外缘距离 y 计算的理论应变；应变片角度偏差、粘贴不牢和导线接触也会放大误差。4. 支座处理论弯矩近似为 0，读数容易受局部约束、支座摩擦、支座转动不充分和贴片位置影响；与跨中和 1/4 跨测点一起平均时，会拉低整体实测应变。5. 1/4 跨外侧、内侧位于不同梁或不同横向位置，实际 4 根 T 梁横向分配不完全均匀，外侧梁与内侧梁受力差别会造成两点读数差异。6. 理论计算采用简化梁模型和等效截面，实际横隔梁连接、混凝土已有微裂缝、加载接触面积、仪器调零、读数回零、持荷时间和温度漂移都会影响结果。\n结论：本次静载理论值与实测值差异主要来自加载接触条件、应变片位置、测点位置差异、横向分配不均和现场测试条件。判断结果时应重点看各级荷载下应变、挠度随荷载增加的变化趋势是否基本一致，而不是只依据别组数据或单个测点读数。`)}</div>`;
     }
 
     function calcBridge() {
@@ -2125,12 +2125,12 @@
       } else if (id === "bridge") {
         [9, 18, 27].forEach((load, i) => {
           setValue(`bridge_load_${i}`, load, "bridge");
-          setValue(`bridge_strain_mid_${i}`, [25, 50, 74][i], "bridge");
-          setValue(`bridge_strain_q_out_${i}`, [23, 47, 71][i], "bridge");
-          setValue(`bridge_strain_q_in_${i}`, [24, 49, 73][i], "bridge");
-          setValue(`bridge_strain_support_${i}`, [6, 12, 18][i], "bridge");
-          setValue(`bridge_defl_q_out_${i}`, [0.075, 0.150, 0.225][i], "bridge");
-          setValue(`bridge_defl_q_in_${i}`, [0.080, 0.155, 0.230][i], "bridge");
+          setValue(`bridge_strain_mid_${i}`, [-6, 18, 15][i], "bridge");
+          setValue(`bridge_strain_q_out_${i}`, [-8, 20, 19][i], "bridge");
+          setValue(`bridge_strain_q_in_${i}`, [-7, 21, 19][i], "bridge");
+          setValue(`bridge_strain_support_${i}`, [-14, 11, 4][i], "bridge");
+          setValue(`bridge_defl_q_out_${i}`, [-0.282, -0.581, -0.911][i], "bridge");
+          setValue(`bridge_defl_q_in_${i}`, [-0.252, -0.595, -0.668][i], "bridge");
           setValue(`dyn_strain_${i}`, [18, 21, 19][i], "bridge");
           setValue(`dyn_defl_${i}`, [0.18, 0.22, 0.2][i], "bridge");
           setValue(`dyn_freq_${i}`, [18.3, 18.6, 18.4][i], "bridge");
