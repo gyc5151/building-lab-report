@@ -1234,8 +1234,12 @@
           <div class="wide-scroll"><table><tr><th>试验次数</th><th>应变测量幅值 1 / με</th><th>应变测量幅值 2 / με</th><th>挠度测量幅值 a / mm</th><th>挠度测量幅值 b / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table></div>
           <div class="question-title">2. 绘出跨中处应变曲线，标出应变幅值</div>
           <label>时程数据（每行：时间,应变）${textarea("timeSeries", "例如：\n0,0\n0.02,12\n0.04,-8", 6)}</label>
+          <div class="result-box" id="bridgeStrainCurveResult">待输入时程数据。</div>
+          <div class="canvas-wrap"><canvas id="bridgeStrainChart" width="900" height="330"></canvas></div>
           <div class="question-title">3. 绘出 FFT 图谱，标出此桥梁的一阶频率</div>
           <label>FFT 数据（每行：频率,幅值）${textarea("fftSeries", "例如：\n5,0.2\n18.49,1.5\n30,0.4", 6)}</label>
+          <div class="result-box" id="bridgeFftResult">待输入 FFT 数据。</div>
+          <div class="canvas-wrap"><canvas id="bridgeFftChart" width="900" height="330"></canvas></div>
         </div>
         <div class="section">
           <h3>五、思考</h3>
@@ -1253,7 +1257,6 @@
           <div class="question-title">4.思考阻尼对实际结构的影响，并列举实际桥梁中可能产生阻尼的因素有哪些？</div>
           <div class="result-box" id="bridgeThink4">待输入动载实验数据。</div>
         </div>
-        <div class="canvas-wrap"><canvas id="bridgeDynamicChart" width="900" height="360"></canvas></div>
       `);
     }
 
@@ -1837,10 +1840,32 @@
       </div>`);
       const time = parseSeries(value("timeSeries", "bridge"));
       const fft = parseSeries(value("fftSeries", "bridge"));
-      drawLineChart("bridgeDynamicChart", [
-        { name: "跨中应变时程", data: time.map(p => ({ x: p[0], y: p[1] })) },
-        { name: "FFT 幅值", data: fft.map(p => ({ x: p[0], y: p[1] })) }
-      ], "时间 s 或频率 Hz", "应变 / 幅值");
+      const timePoints = time.map(p => ({ x: p[0], y: p[1] }));
+      const fftPoints = fft.map(p => ({ x: p[0], y: p[1] }));
+      const peakStrainPoint = timePoints.length
+        ? timePoints.reduce((best, p) => Math.abs(p.y) > Math.abs(best.y) ? p : best, timePoints[0])
+        : null;
+      const firstFreqPoint = fftPoints.length
+        ? fftPoints.reduce((best, p) => p.y > best.y ? p : best, fftPoints[0])
+        : null;
+      setResultHtml("bridgeStrainCurveResult", peakStrainPoint
+        ? `<div class="formula-output">
+            ${formulaLine("跨中应变幅值", "\\varepsilon_{max}=\\max|\\varepsilon(t)|", timePoints.map(p => fmt(Math.abs(p.y), 3)).join(","), `${fmt(Math.abs(peakStrainPoint.y), 3)}\\,\\mu\\varepsilon`)}
+            ${noteBlock(`图中已标出最大应变幅值点：t = ${fmt(peakStrainPoint.x, 3)} s，ε = ${fmt(peakStrainPoint.y, 3)} με。`)}
+          </div>`
+        : "待输入时程数据。");
+      setResultHtml("bridgeFftResult", firstFreqPoint
+        ? `<div class="formula-output">
+            ${formulaLine("一阶频率", "f_1=f(A_{max})", `f(${fmt(firstFreqPoint.y, 3)})`, `${fmt(firstFreqPoint.x, 2)}\\,\\mathrm{Hz}`)}
+            ${noteBlock(`图中已用虚线标出 FFT 最大峰值位置，作为本次识别的一阶频率：f1 = ${fmt(firstFreqPoint.x, 2)} Hz。`)}
+          </div>`
+        : "待输入 FFT 数据。");
+      drawLineChart("bridgeStrainChart", [
+        { name: "跨中应变时程", data: timePoints }
+      ], "时间 / s", "应变 / με", peakStrainPoint ? [{ ...peakStrainPoint, label: `幅值 ${fmt(Math.abs(peakStrainPoint.y), 3)} με` }] : []);
+      drawLineChart("bridgeFftChart", [
+        { name: "FFT 幅值", data: fftPoints }
+      ], "频率 / Hz", "幅值", firstFreqPoint ? [{ ...firstFreqPoint, label: `一阶频率 ${fmt(firstFreqPoint.x, 2)} Hz`, vertical: true }] : []);
       return [...staticRows, ...dynRows];
     }
 
@@ -1866,7 +1891,7 @@
       ctx.fillText(text, canvas.width / 2, canvas.height / 2);
     }
 
-    function drawLineChart(canvasId, series, xLabel, yLabel) {
+    function drawLineChart(canvasId, series, xLabel, yLabel, annotations = []) {
       const canvas = document.getElementById(canvasId);
       if (!canvas) return;
       const clean = series.map(s => ({ ...s, data: s.data.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)) })).filter(s => s.data.length);
@@ -1904,6 +1929,28 @@
           ctx.fill();
         });
         ctx.fillText(s.name, pad.l + idx * 145, 20);
+      });
+      annotations.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y)).forEach(p => {
+        const x = sx(p.x), y = sy(p.y);
+        ctx.save();
+        ctx.strokeStyle = "#b91c1c";
+        ctx.fillStyle = "#b91c1c";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        if (p.vertical) {
+          ctx.beginPath();
+          ctx.moveTo(x, pad.t);
+          ctx.lineTo(x, H - pad.b);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = x > W - 220 ? "right" : "left";
+        ctx.fillText(p.label || "", x > W - 220 ? x - 8 : x + 8, Math.max(pad.t + 16, y - 10));
+        ctx.restore();
       });
     }
 
