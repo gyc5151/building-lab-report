@@ -811,9 +811,11 @@
       },
       bridge: {
         staticPurpose: "通过静载试验掌握 T 型梁模型在分级荷载作用下的应变和挠度响应，比较理论值与实测值，分析结构工作状态。",
-        dynamicPurpose: "通过动载试验测定桥梁模型的动力响应，识别结构自振频率、阻尼比、动应变幅值和冲击系数。",
+        dynamicPurpose: "1. 测定桥梁自振频率、振型、阻尼比等动力特性，掌握实测频率、刚度与整体状态的关系。\n2. 发现隐蔽病害，评价桥梁受注状态与工作性能。\n3. 检测动载下结构响应，判断行车舒适性与使用性能。",
         equipment: "无线静态应变测试系统、静态应变测试系统、无线动态应变测试分析系统、百分表或位移计、加载设备、动态传感器及采集软件。",
-        scheme: "静载试验采用跨中集中荷载，分 3 级加载，累计荷载为 9kN、18kN、27kN。侧面看共有 4 根 T 梁。应变测点共 4 个：1/2 跨处 1 个，1/4 跨处 2 个（外侧、靠内侧），支座处 1 个；挠度在 1/4 跨处布置 2 个仪器（外侧、靠内侧）。动载试验可采用脉动测试和跑车试验，采集跨中动态响应和动应变信号，并进行 FFT 分析。"
+        dynamicEquipment: "智能采集仪、电烙铁、焊锡丝、钳子、砂纸、胶带、应变片、胶水、软布、万用表、剪刀、端子、火山泥；加载软件：MIDAS Civil。",
+        dynamicScheme: "加载方式采用两人站在梁上跳动施加动载，加载位置在梁跨中，两人沿梁纵向对称站立。测点布置于梁跨中与 1/4 跨下侧；布置应变片，跨中与 1/4 跨顶端布置拾振器，同时在底部设置位移计。\n实验步骤：1. 将应变片贴片处和拾振器放置位置表面清理干净；2. 使用 502 胶将贴片与梁粘密，使用火山泥固定拾振器；3. 使用电烙铁连接贴片和端子，检查线路通断；4. 将软件调零，每人加载，观察波形是否正常；5. 正常后开始测试，测 3 次并采集数据。",
+        scheme: "静载试验采用跨中集中荷载，分 3 级加载，累计荷载为 9kN、18kN、27kN。侧面看共有 4 根 T 梁。应变测点共 4 个：1/2 跨处 1 个，1/4 跨处 2 个（外侧、靠内侧），支座处 1 个；挠度在 1/4 跨处布置 2 个仪器（外侧、靠内侧）。动载试验可采用脉动测试和跳动加载，采集跨中动态响应和动应变信号，并进行 FFT 分析。"
       }
     };
 
@@ -1193,7 +1195,15 @@
         </tr>
       `).join("");
       const dynamicRows = [1, 2, 3].map((level, i) => `
-        <tr><th>第 ${level} 次</th><td>${input(`dyn_strain_${i}`, "number", 'step="0.1"')}</td><td>${input(`dyn_defl_${i}`, "number", 'step="0.001"')}</td><td>${input(`dyn_freq_${i}`, "number", 'step="0.01"')}</td><td>${input(`dyn_damping_${i}`, "number", 'step="0.0001"')}</td></tr>
+        <tr>
+          <th>第 ${level} 次</th>
+          <td>${input(`dyn_strain_1_${i}`, "number", 'step="0.001"')}</td>
+          <td>${input(`dyn_strain_2_${i}`, "number", 'step="0.001"')}</td>
+          <td>${input(`dyn_defl_a_${i}`, "number", 'step="0.001"')}</td>
+          <td>${input(`dyn_defl_b_${i}`, "number", 'step="0.001"')}</td>
+          <td>${input(`dyn_freq_${i}`, "number", 'step="0.01"')}</td>
+          <td>${input(`dyn_damping_${i}`, "number", 'step="0.0001"')}</td>
+        </tr>
       `).join("");
       return page("bridge", "桥梁动静载实验", `
         <div class="section"><h3>桥梁动静载实验之一：静载试验</h3></div>
@@ -1210,11 +1220,11 @@
         <div class="canvas-wrap"><canvas id="bridgeStaticChart" width="900" height="330"></canvas></div>
         <div class="section"><h3>桥梁动静载实验之二：动载试验</h3></div>
         <div class="section"><h3>一、实验目的</h3>${prefilled(prefill.bridge.dynamicPurpose)}</div>
-        <div class="section"><h3>二、实验设备及软件</h3>${prefilled("东华动态信号采集分析系统或同类动态测试系统、竖向拾振器、动态应变计、采集电脑及分析软件。")}</div>
-        <div class="section"><h3>三、加载方式、测点布置和步骤</h3>${textarea("bridgeDynamicScheme", "填写动载加载方式、测点布置、跑车或脉动测试步骤。")}${uploadBlock("bridgeDynamic")}</div>
+        <div class="section"><h3>二、实验设备及软件</h3>${prefilled(prefill.bridge.dynamicEquipment)}</div>
+        <div class="section"><h3>三、加载方式、测点布置和步骤</h3>${prefilled(prefill.bridge.dynamicScheme)}${textarea("bridgeDynamicScheme", "补充本组实际加载位置、测点编号和现场步骤。", 3)}${uploadBlock("bridgeDynamic")}</div>
         <div class="section">
           <h3>四、实验结果及分析</h3>
-          <table><tr><th>试验次数</th><th>应变测量幅值 / με</th><th>挠度测量幅值 / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table>
+          <div class="wide-scroll"><table><tr><th>试验次数</th><th>应变测量幅值 1 / με</th><th>应变测量幅值 2 / με</th><th>挠度测量幅值 a / mm</th><th>挠度测量幅值 b / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table></div>
           <label>时程数据（每行：时间,应变）${textarea("timeSeries", "例如：\n0,0\n0.02,12\n0.04,-8", 6)}</label>
           <label>FFT 数据（每行：频率,幅值）${textarea("fftSeries", "例如：\n5,0.2\n18.49,1.5\n30,0.4", 6)}</label>
         </div>
@@ -1753,23 +1763,35 @@
 
       const dynRows = [];
       for (let i = 0; i < 3; i++) {
-        const strain = num(value(`dyn_strain_${i}`, "bridge"));
-        const defl = num(value(`dyn_defl_${i}`, "bridge"));
+        const strain1 = num(value(`dyn_strain_1_${i}`, "bridge") || value(`dyn_strain_${i}`, "bridge"));
+        const strain2 = num(value(`dyn_strain_2_${i}`, "bridge"));
+        const deflA = num(value(`dyn_defl_a_${i}`, "bridge") || value(`dyn_defl_${i}`, "bridge"));
+        const deflB = num(value(`dyn_defl_b_${i}`, "bridge"));
         const freq = num(value(`dyn_freq_${i}`, "bridge"));
         const damping = num(value(`dyn_damping_${i}`, "bridge"));
-        if ([strain, defl, freq, damping].some(Number.isFinite)) dynRows.push({ i, strain, defl, freq, damping });
+        if ([strain1, strain2, deflA, deflB, freq, damping].some(Number.isFinite)) dynRows.push({ i, strain1, strain2, deflA, deflB, freq, damping });
       }
       const freqs = dynRows.map(r => r.freq).filter(Number.isFinite);
+      const dampings = dynRows.map(r => r.damping).filter(Number.isFinite);
+      const dynStrains = dynRows.flatMap(r => [r.strain1, r.strain2]).filter(Number.isFinite);
+      const dynDefls = dynRows.flatMap(r => [r.deflA, r.deflB]).filter(Number.isFinite);
       const theoryF = 18.49;
       const fAvg = mean(freqs);
       const fErr = (fAvg - theoryF) / theoryF * 100;
+      const dampingAvg = mean(dampings);
+      const strainAmp = dynStrains.length ? Math.max(...dynStrains.map(Math.abs)) : NaN;
+      const deflAmp = dynDefls.length ? Math.max(...dynDefls.map(Math.abs)) : NaN;
       setResultHtml("bridgeDynamicResult", dynRows.length || parseSeries(value("timeSeries", "bridge")).length || parseSeries(value("fftSeries", "bridge")).length
         ? `<div class="formula-output">
+            ${formulaLine("理论基频", "f_1=\\frac{\\pi}{2L^2}\\sqrt{\\frac{EI}{m}}", "\\text{由 MIDAS Civil 或实验指导书模型给出}", `${theoryF.toFixed(2)}\\,\\mathrm{Hz}`)}
             ${formulaLine("实测频率平均值", "f_m=\\frac{\\sum f_i}{n}", `\\frac{${freqs.length ? texSum(freqs, 2) : "\\cdots"}}{${freqs.length || "n"}}`, `${fmt(fAvg, 2)}\\,\\mathrm{Hz}`)}
             ${formulaLine("频率误差", "\\eta_f=\\frac{f_m-f_{\\text{理论}}}{f_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(fAvg, 2)}-${theoryF.toFixed(2)}}{${theoryF.toFixed(2)}}\\times100\\%`, `${fmt(fErr, 2)}\\%`)}
+            ${formulaLine("最大动应变幅值", "\\varepsilon_{d,max}=\\max|\\varepsilon_i|", dynStrains.length ? dynStrains.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(strainAmp, 3)}\\,\\mu\\varepsilon`)}
+            ${formulaLine("最大动挠度幅值", "f_{d,max}=\\max|f_i|", dynDefls.length ? dynDefls.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(deflAmp, 3)}\\,\\mathrm{mm}`)}
             ${formulaLine("冲击系数", "\\mu=\\frac{y_{\\text{动}}}{y_{\\text{静}}}", "\\frac{\\text{动响应峰值}}{\\text{静响应值}}", "\\text{待结合跑车试验峰值计算}")}
-            ${formulaLine("阻尼比", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
-            ${noteBlock("阻尼会消耗振动能量并影响结构振幅和振动衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座、连接构造、铺装层、栏杆附属结构和土-结构相互作用等。")}
+            ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 4) : "\\cdots"}}{${dampings.length || "n"}}`, `${fmt(dampingAvg, 4)}`)}
+            ${formulaLine("半功率带宽法", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
+            ${noteBlock("对照别组报告，动载部分需要记录 3 次试验的应变幅值 1、应变幅值 2、挠度幅值 a、挠度幅值 b、频率和阻尼比；再画跨中应变时程曲线和 FFT 图谱。阻尼会消耗振动能量并影响结构振幅和衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座内部摩擦、构件相对滑动、连接部位微小位移、空气阻尼和附属设施阻尼等。")}
           </div>`
         : "待输入动载实验数据。");
       const time = parseSeries(value("timeSeries", "bridge"));
@@ -2131,8 +2153,10 @@
           setValue(`bridge_strain_support_${i}`, [-14, 11, 4][i], "bridge");
           setValue(`bridge_defl_q_out_${i}`, [-0.282, -0.581, -0.911][i], "bridge");
           setValue(`bridge_defl_q_in_${i}`, [-0.252, -0.595, -0.668][i], "bridge");
-          setValue(`dyn_strain_${i}`, [18, 21, 19][i], "bridge");
-          setValue(`dyn_defl_${i}`, [0.18, 0.22, 0.2][i], "bridge");
+          setValue(`dyn_strain_1_${i}`, [18, 21, 19][i], "bridge");
+          setValue(`dyn_strain_2_${i}`, ["", "", ""][i], "bridge");
+          setValue(`dyn_defl_a_${i}`, [0.18, 0.22, 0.2][i], "bridge");
+          setValue(`dyn_defl_b_${i}`, ["", "", ""][i], "bridge");
           setValue(`dyn_freq_${i}`, [18.3, 18.6, 18.4][i], "bridge");
           setValue(`dyn_damping_${i}`, [0.025, 0.026, 0.024][i], "bridge");
         });
