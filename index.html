@@ -389,6 +389,12 @@
       overflow-wrap: anywhere;
     }
 
+    .question-title {
+      margin: 14px 0 8px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
     .formula-note {
       color: #334155;
       white-space: pre-wrap;
@@ -1224,11 +1230,29 @@
         <div class="section"><h3>三、加载方式、测点布置和步骤</h3>${prefilled(prefill.bridge.dynamicScheme)}${textarea("bridgeDynamicScheme", "补充本组实际加载位置、测点编号和现场步骤。", 3)}${uploadBlock("bridgeDynamic")}</div>
         <div class="section">
           <h3>四、实验结果及分析</h3>
+          <div class="question-title">1.读出你测得的实验数据数据</div>
           <div class="wide-scroll"><table><tr><th>试验次数</th><th>应变测量幅值 1 / με</th><th>应变测量幅值 2 / με</th><th>挠度测量幅值 a / mm</th><th>挠度测量幅值 b / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table></div>
+          <div class="question-title">2. 绘出跨中处应变曲线，标出应变幅值</div>
           <label>时程数据（每行：时间,应变）${textarea("timeSeries", "例如：\n0,0\n0.02,12\n0.04,-8", 6)}</label>
+          <div class="question-title">3. 绘出 FFT 图谱，标出此桥梁的一阶频率</div>
           <label>FFT 数据（每行：频率,幅值）${textarea("fftSeries", "例如：\n5,0.2\n18.49,1.5\n30,0.4", 6)}</label>
         </div>
-        <div class="section"><h3>五、思考</h3><div class="result-box" id="bridgeDynamicResult">待输入实验数据。</div></div>
+        <div class="section">
+          <h3>五、思考</h3>
+          <div class="question-title">1.计算桥梁的理论基频理论值；</div>
+          <div class="result-box" id="bridgeThink1">待计算。</div>
+          <div class="question-title">2.将理论结构基频与实测结构基频值进行比较，并讨论产生误差的因素？</div>
+          <div class="result-box" id="bridgeThink2">待输入动载频率数据。</div>
+          <div class="question-title">3.计算桥梁冲击系数，并与实测软件计算值进行比较；</div>
+          <div class="toolbar">
+            <label>动响应峰值 yd ${input("dyn_peak_response", "number", 'step="0.001" class="small-input"')}</label>
+            <label>静响应值 ys ${input("dyn_static_response", "number", 'step="0.001" class="small-input"')}</label>
+            <label>软件冲击系数 μs ${input("dyn_impact_software", "number", 'step="0.001" class="small-input"')}</label>
+          </div>
+          <div class="result-box" id="bridgeThink3">待输入动、静响应或软件冲击系数。</div>
+          <div class="question-title">4.思考阻尼对实际结构的影响，并列举实际桥梁中可能产生阻尼的因素有哪些？</div>
+          <div class="result-box" id="bridgeThink4">待输入动载实验数据。</div>
+        </div>
         <div class="canvas-wrap"><canvas id="bridgeDynamicChart" width="900" height="360"></canvas></div>
       `);
     }
@@ -1781,19 +1805,36 @@
       const dampingAvg = mean(dampings);
       const strainAmp = dynStrains.length ? Math.max(...dynStrains.map(Math.abs)) : NaN;
       const deflAmp = dynDefls.length ? Math.max(...dynDefls.map(Math.abs)) : NaN;
-      setResultHtml("bridgeDynamicResult", dynRows.length || parseSeries(value("timeSeries", "bridge")).length || parseSeries(value("fftSeries", "bridge")).length
+      const impactDyn = num(value("dyn_peak_response", "bridge"));
+      const impactStatic = num(value("dyn_static_response", "bridge"));
+      const impactSoftware = num(value("dyn_impact_software", "bridge"));
+      const impactCalc = Number.isFinite(impactDyn) && Number.isFinite(impactStatic) && impactStatic !== 0 ? impactDyn / impactStatic : NaN;
+      const impactErr = Number.isFinite(impactCalc) && Number.isFinite(impactSoftware) && impactSoftware !== 0 ? (impactCalc - impactSoftware) / impactSoftware * 100 : NaN;
+      setResultHtml("bridgeThink1", `<div class="formula-output">
+        ${formulaStatement("理论基频", "按实验报告要求给出桥梁理论基频。理论值可由 MIDAS Civil 模型或指导书给出的等效模型计算，本报告采用软件理论值作为对照值。", "f_1=18.49\\,\\mathrm{Hz}")}
+        ${formulaLine("理论基频公式", "f_1=\\frac{\\pi}{2L^2}\\sqrt{\\frac{EI}{m}}", "\\text{由 MIDAS Civil 或实验指导书模型代入}", `${theoryF.toFixed(2)}\\,\\mathrm{Hz}`)}
+      </div>`);
+      setResultHtml("bridgeThink2", freqs.length
         ? `<div class="formula-output">
-            ${formulaLine("理论基频", "f_1=\\frac{\\pi}{2L^2}\\sqrt{\\frac{EI}{m}}", "\\text{由 MIDAS Civil 或实验指导书模型给出}", `${theoryF.toFixed(2)}\\,\\mathrm{Hz}`)}
-            ${formulaLine("实测频率平均值", "f_m=\\frac{\\sum f_i}{n}", `\\frac{${freqs.length ? texSum(freqs, 2) : "\\cdots"}}{${freqs.length || "n"}}`, `${fmt(fAvg, 2)}\\,\\mathrm{Hz}`)}
-            ${formulaLine("频率误差", "\\eta_f=\\frac{f_m-f_{\\text{理论}}}{f_{\\text{理论}}}\\times100\\%", `\\frac{${fmt(fAvg, 2)}-${theoryF.toFixed(2)}}{${theoryF.toFixed(2)}}\\times100\\%`, `${fmt(fErr, 2)}\\%`)}
+            ${formulaLine("实测结构基频平均值", "f_m=\\frac{\\sum f_i}{n}", `\\frac{${texSum(freqs, 2)}}{${freqs.length}}`, `${fmt(fAvg, 2)}\\,\\mathrm{Hz}`)}
+            ${formulaLine("基频相对误差", "\\eta_f=\\frac{f_m-f_1}{f_1}\\times100\\%", `\\frac{${fmt(fAvg, 2)}-${theoryF.toFixed(2)}}{${theoryF.toFixed(2)}}\\times100\\%`, `${fmt(fErr, 2)}\\%`)}
             ${formulaLine("最大动应变幅值", "\\varepsilon_{d,max}=\\max|\\varepsilon_i|", dynStrains.length ? dynStrains.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(strainAmp, 3)}\\,\\mu\\varepsilon`)}
             ${formulaLine("最大动挠度幅值", "f_{d,max}=\\max|f_i|", dynDefls.length ? dynDefls.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(deflAmp, 3)}\\,\\mathrm{mm}`)}
-            ${formulaLine("冲击系数", "\\mu=\\frac{y_{\\text{动}}}{y_{\\text{静}}}", "\\frac{\\text{动响应峰值}}{\\text{静响应值}}", "\\text{待结合跑车试验峰值计算}")}
-            ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 4) : "\\cdots"}}{${dampings.length || "n"}}`, `${fmt(dampingAvg, 4)}`)}
-            ${formulaLine("半功率带宽法", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
-            ${noteBlock("对照别组报告，动载部分需要记录 3 次试验的应变幅值 1、应变幅值 2、挠度幅值 a、挠度幅值 b、频率和阻尼比；再画跨中应变时程曲线和 FFT 图谱。阻尼会消耗振动能量并影响结构振幅和衰减速度，实际桥梁阻尼来源包括材料内摩擦、支座内部摩擦、构件相对滑动、连接部位微小位移、空气阻尼和附属设施阻尼等。")}
+            ${noteBlock("理论基频与实测基频存在差异，主要原因包括：理论模型对边界条件和质量分布作了理想化；实际支座、横隔梁、连接部位和附属构件会改变结构刚度；跳动加载过程不完全稳定，激励频带和采样长度会影响 FFT 峰值识别；传感器安装位置、粘贴质量、采集仪调零、环境振动和读数取峰方式也会引起偏差。")}
           </div>`
-        : "待输入动载实验数据。");
+        : "待输入频率计算值。");
+      setResultHtml("bridgeThink3", Number.isFinite(impactCalc) || Number.isFinite(impactSoftware)
+        ? `<div class="formula-output">
+            ${formulaLine("冲击系数", "\\mu=\\frac{y_d}{y_s}", `\\frac{${texValue(impactDyn, 3)}}{${texValue(impactStatic, 3)}}`, Number.isFinite(impactCalc) ? fmt(impactCalc, 3) : "\\text{待输入}")}
+            ${formulaLine("与软件值误差", "\\eta_\\mu=\\frac{\\mu-\\mu_s}{\\mu_s}\\times100\\%", `\\frac{${texValue(impactCalc, 3)}-${texValue(impactSoftware, 3)}}{${texValue(impactSoftware, 3)}}\\times100\\%`, Number.isFinite(impactErr) ? `${fmt(impactErr, 2)}\\%` : "\\text{待输入}")}
+            ${noteBlock("若计算冲击系数与软件值不一致，可能与动响应峰值读取、静响应基准选取、滤波设置、采样频率、加载同步性以及软件自动识别峰值的方法有关。")}
+          </div>`
+        : "待输入动响应峰值、静响应值或软件冲击系数。");
+      setResultHtml("bridgeThink4", `<div class="formula-output">
+        ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 4) : "\\cdots"}}{${dampings.length || "n"}}`, Number.isFinite(dampingAvg) ? fmt(dampingAvg, 4) : "\\text{待输入}")}
+        ${formulaLine("半功率带宽法", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
+        ${noteBlock("阻尼会耗散结构振动能量，使振幅随时间衰减，并影响共振峰宽度、动力放大效应和行车舒适性。实际桥梁中可能产生阻尼的因素包括：材料内摩擦、混凝土微裂缝开闭、支座内部摩擦、构件之间的相对滑动、连接部位微小位移、桥面铺装和栏杆等附属设施耗能、空气阻尼以及基础和地基相互作用。")}
+      </div>`);
       const time = parseSeries(value("timeSeries", "bridge"));
       const fft = parseSeries(value("fftSeries", "bridge"));
       drawLineChart("bridgeDynamicChart", [
