@@ -1231,7 +1231,7 @@
         <div class="section">
           <h3>四、实验结果及分析</h3>
           <div class="question-title">1.读出你测得的实验数据数据</div>
-          <div class="wide-scroll"><table><tr><th>试验次数</th><th>应变测量幅值 1 / με</th><th>应变测量幅值 2 / με</th><th>挠度测量幅值 a / mm</th><th>挠度测量幅值 b / mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值</th></tr>${dynamicRows}</table></div>
+          <div class="wide-scroll"><table><tr><th>试验次数</th><th>应变测量幅值 1 / με</th><th>应变测量幅值 2 / με</th><th>挠度测量幅值 a（1/4 测点）/ mm</th><th>挠度测量幅值 b（1/2 测点）/ mm</th><th>频率计算值 / Hz</th><th>阻尼比计算值 / %</th></tr>${dynamicRows}</table></div>
           <div class="question-title">2. 绘出跨中处应变曲线，标出应变幅值</div>
           <label>时程数据（每行：时间,应变）${textarea("timeSeries", "例如：\n0,0\n0.02,12\n0.04,-8", 6)}</label>
           <div class="result-box" id="bridgeStrainCurveResult">待输入时程数据。</div>
@@ -1251,7 +1251,7 @@
           <div class="toolbar">
             <label>动响应峰值 yd ${input("dyn_peak_response", "number", 'step="0.001" class="small-input"')}</label>
             <label>静响应值 ys ${input("dyn_static_response", "number", 'step="0.001" class="small-input"')}</label>
-            <label>软件冲击系数 μs ${input("dyn_impact_software", "number", 'step="0.001" class="small-input"')}</label>
+            <label>软件冲击系数 μs ${input("dyn_impact_software", "number", 'step="0.00001" class="small-input"')}</label>
           </div>
           <div class="result-box" id="bridgeThink3">待输入动、静响应或软件冲击系数。</div>
           <div class="question-title">4.思考阻尼对实际结构的影响，并列举实际桥梁中可能产生阻尼的因素有哪些？</div>
@@ -1834,7 +1834,7 @@
           </div>`
         : "待输入动响应峰值、静响应值或软件冲击系数。");
       setResultHtml("bridgeThink4", `<div class="formula-output">
-        ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 4) : "\\cdots"}}{${dampings.length || "n"}}`, Number.isFinite(dampingAvg) ? fmt(dampingAvg, 4) : "\\text{待输入}")}
+        ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 3) : "\\cdots"}}{${dampings.length || "n"}}`, Number.isFinite(dampingAvg) ? `${fmt(dampingAvg, 3)}\\%` : "\\text{待输入}")}
         ${formulaLine("半功率带宽法", "\\xi=\\frac{f_2-f_1}{2f_n}", "\\frac{\\text{半功率带宽上限频率}-\\text{下限频率}}{2\\times\\text{共振频率}}", "\\text{待由 FFT 图谱读取}")}
         ${noteBlock("阻尼会耗散结构振动能量，使振幅随时间衰减，并影响共振峰宽度、动力放大效应和行车舒适性。实际桥梁中可能产生阻尼的因素包括：材料内摩擦、混凝土微裂缝开闭、支座内部摩擦、构件之间的相对滑动、连接部位微小位移、桥面铺装和栏杆等附属设施耗能、空气阻尼以及基础和地基相互作用。")}
       </div>`);
@@ -2241,15 +2241,16 @@
           setValue(`bridge_strain_support_${i}`, [-14, 11, 4][i], "bridge");
           setValue(`bridge_defl_q_out_${i}`, [-0.282, -0.581, -0.911][i], "bridge");
           setValue(`bridge_defl_q_in_${i}`, [-0.252, -0.595, -0.668][i], "bridge");
-          setValue(`dyn_strain_1_${i}`, [18, 21, 19][i], "bridge");
-          setValue(`dyn_strain_2_${i}`, ["", "", ""][i], "bridge");
-          setValue(`dyn_defl_a_${i}`, [0.18, 0.22, 0.2][i], "bridge");
-          setValue(`dyn_defl_b_${i}`, ["", "", ""][i], "bridge");
-          setValue(`dyn_freq_${i}`, [18.3, 18.6, 18.4][i], "bridge");
-          setValue(`dyn_damping_${i}`, [0.025, 0.026, 0.024][i], "bridge");
+          setValue(`dyn_strain_1_${i}`, [-4.64, -4.03, -5.00][i], "bridge");
+          setValue(`dyn_strain_2_${i}`, [4.554, -2.51, 4.10][i], "bridge");
+          setValue(`dyn_defl_a_${i}`, [0.004, -0.058, -0.052][i], "bridge");
+          setValue(`dyn_defl_b_${i}`, [-0.048, -0.105, -0.094][i], "bridge");
+          setValue(`dyn_freq_${i}`, [16.375, 16.375, 16.375][i], "bridge");
+          setValue(`dyn_damping_${i}`, [0.522, 0.522, 0.522][i], "bridge");
         });
-        setValue("timeSeries", "0,0\n0.02,12\n0.04,18\n0.06,3\n0.08,-13\n0.10,-18\n0.12,-4\n0.14,11\n0.16,17", "bridge");
-        setValue("fftSeries", "5,0.2\n10,0.3\n18.49,1.8\n29.44,0.7\n43.92,0.4", "bridge");
+        setValue("dyn_impact_software", -0.22406, "bridge");
+        setValue("timeSeries", "0,-1.4\n1,-1.8\n2,-1.5\n3,-1.0\n4,-1.8\n4.3,-4.64\n4.6,4.554\n5,-2.2\n6,-1.7\n7.6,-4.03\n7.9,-2.51\n9.6,-3.2\n10.2,-5.00\n10.7,4.10\n12,-3.8", "bridge");
+        setValue("fftSeries", "0,0\n5,0.4\n10,0.6\n14,2.4\n16.375,11.0\n18,8.0\n21,1.2\n32,1.1\n50,0.8\n65,0.5\n82,0.4\n100,0.2\n120,0.1", "bridge");
       }
       calculate(id);
       saveState();
