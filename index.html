@@ -1243,6 +1243,10 @@
         </div>
         <div class="section">
           <h3>五、思考</h3>
+          <div class="toolbar">
+            <label>理论基频 f1 ${input("dyn_theory_freq", "number", 'step="0.001" placeholder="默认 18.49" class="small-input"')} Hz</label>
+            <label>规范参考冲击系数 μ0 ${input("dyn_norm_impact", "number", 'step="0.001" placeholder="默认 0.45" class="small-input"')}</label>
+          </div>
           <div class="question-title">1.计算桥梁的理论基频理论值；</div>
           <div class="result-box" id="bridgeThink1">待计算。</div>
           <div class="question-title">2.将理论结构基频与实测结构基频值进行比较，并讨论产生误差的因素？</div>
@@ -1802,19 +1806,26 @@
       const dampings = dynRows.map(r => r.damping).filter(Number.isFinite);
       const dynStrains = dynRows.flatMap(r => [r.strain1, r.strain2]).filter(Number.isFinite);
       const dynDefls = dynRows.flatMap(r => [r.deflA, r.deflB]).filter(Number.isFinite);
-      const theoryF = 18.49;
+      const theoryFInput = num(value("dyn_theory_freq", "bridge"));
+      const theoryF = Number.isFinite(theoryFInput) ? theoryFInput : 18.49;
+      const normImpactInput = num(value("dyn_norm_impact", "bridge"));
+      const normImpact = Number.isFinite(normImpactInput) ? normImpactInput : 0.45;
       const fAvg = mean(freqs);
       const fErr = (fAvg - theoryF) / theoryF * 100;
       const dampingAvg = mean(dampings);
       const strainAmp = dynStrains.length ? Math.max(...dynStrains.map(Math.abs)) : NaN;
       const deflAmp = dynDefls.length ? Math.max(...dynDefls.map(Math.abs)) : NaN;
+      const dynQualityNotes = [];
+      if (dynStrains.some(v => Math.abs(v) > 100)) dynQualityNotes.push("动应变读数中存在绝对值大于 100 με 的异常量级，请重点核对小数点位置。");
       const impactDyn = num(value("dyn_peak_response", "bridge"));
       const impactStatic = num(value("dyn_static_response", "bridge"));
       const impactSoftware = num(value("dyn_impact_software", "bridge"));
       const impactCalc = Number.isFinite(impactDyn) && Number.isFinite(impactStatic) && impactStatic !== 0 ? impactDyn / impactStatic : NaN;
       const impactErr = Number.isFinite(impactCalc) && Number.isFinite(impactSoftware) && impactSoftware !== 0 ? (impactCalc - impactSoftware) / impactSoftware * 100 : NaN;
+      const impactSoftwareAbs = Number.isFinite(impactSoftware) ? Math.abs(impactSoftware) : NaN;
+      const impactNormDiff = Number.isFinite(impactSoftwareAbs) ? impactSoftwareAbs - normImpact : NaN;
       setResultHtml("bridgeThink1", `<div class="formula-output">
-        ${formulaStatement("理论基频", "按实验报告要求给出桥梁理论基频。理论值可由 MIDAS Civil 模型或指导书给出的等效模型计算，本报告采用软件理论值作为对照值。", "f_1=18.49\\,\\mathrm{Hz}")}
+        ${formulaStatement("理论基频", "按实验报告要求给出桥梁理论基频。理论值可由 MIDAS Civil 模型或指导书给出的等效模型计算，本报告采用软件理论值作为对照值。", `f_1=${fmt(theoryF, 3)}\\,\\mathrm{Hz}`)}
         ${formulaLine("理论基频公式", "f_1=\\frac{\\pi}{2L^2}\\sqrt{\\frac{EI}{m}}", "\\text{由 MIDAS Civil 或实验指导书模型代入}", `${theoryF.toFixed(2)}\\,\\mathrm{Hz}`)}
       </div>`);
       setResultHtml("bridgeThink2", freqs.length
@@ -1823,15 +1834,25 @@
             ${formulaLine("基频相对误差", "\\eta_f=\\frac{f_m-f_1}{f_1}\\times100\\%", `\\frac{${fmt(fAvg, 2)}-${theoryF.toFixed(2)}}{${theoryF.toFixed(2)}}\\times100\\%`, `${fmt(fErr, 2)}\\%`)}
             ${formulaLine("最大动应变幅值", "\\varepsilon_{d,max}=\\max|\\varepsilon_i|", dynStrains.length ? dynStrains.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(strainAmp, 3)}\\,\\mu\\varepsilon`)}
             ${formulaLine("最大动挠度幅值", "f_{d,max}=\\max|f_i|", dynDefls.length ? dynDefls.map(v => fmt(Math.abs(v), 3)).join(",") : "\\cdots", `${fmt(deflAmp, 3)}\\,\\mathrm{mm}`)}
+            ${dynQualityNotes.map(noteBlock).join("")}
             ${noteBlock("理论基频与实测基频存在差异，主要原因包括：理论模型对边界条件和质量分布作了理想化；实际支座、横隔梁、连接部位和附属构件会改变结构刚度；跳动加载过程不完全稳定，激励频带和采样长度会影响 FFT 峰值识别；传感器安装位置、粘贴质量、采集仪调零、环境振动和读数取峰方式也会引起偏差。")}
           </div>`
         : "待输入频率计算值。");
       setResultHtml("bridgeThink3", Number.isFinite(impactCalc) || Number.isFinite(impactSoftware)
-        ? `<div class="formula-output">
-            ${formulaLine("冲击系数", "\\mu=\\frac{y_d}{y_s}", `\\frac{${texValue(impactDyn, 3)}}{${texValue(impactStatic, 3)}}`, Number.isFinite(impactCalc) ? fmt(impactCalc, 3) : "\\text{待输入}")}
-            ${formulaLine("与软件值误差", "\\eta_\\mu=\\frac{\\mu-\\mu_s}{\\mu_s}\\times100\\%", `\\frac{${texValue(impactCalc, 3)}-${texValue(impactSoftware, 3)}}{${texValue(impactSoftware, 3)}}\\times100\\%`, Number.isFinite(impactErr) ? `${fmt(impactErr, 2)}\\%` : "\\text{待输入}")}
-            ${noteBlock("若计算冲击系数与软件值不一致，可能与动响应峰值读取、静响应基准选取、滤波设置、采样频率、加载同步性以及软件自动识别峰值的方法有关。")}
-          </div>`
+        ? (Number.isFinite(impactCalc)
+          ? `<div class="formula-output">
+              ${formulaLine("冲击系数", "\\mu=\\frac{y_d}{y_s}", `\\frac{${texValue(impactDyn, 3)}}{${texValue(impactStatic, 3)}}`, fmt(impactCalc, 3))}
+              ${formulaLine("与软件值误差", "\\eta_\\mu=\\frac{\\mu-\\mu_s}{\\mu_s}\\times100\\%", `\\frac{${texValue(impactCalc, 3)}-${texValue(impactSoftware, 5)}}{${texValue(impactSoftware, 5)}}\\times100\\%`, Number.isFinite(impactErr) ? `${fmt(impactErr, 2)}\\%` : "\\text{待输入}")}
+              ${noteBlock("若计算冲击系数与软件值不一致，可能与动响应峰值读取、静响应基准选取、滤波设置、采样频率、加载同步性以及软件自动识别峰值的方法有关。")}
+            </div>`
+          : `<div class="formula-output">
+              ${formulaLine("软件实测冲击系数", "\\mu_s=\\text{软件读数}", texValue(impactSoftware, 5), texValue(impactSoftware, 5))}
+              ${formulaLine("按幅值取冲击系数", "\\mu_{s,abs}=|\\mu_s|", `|${texValue(impactSoftware, 5)}|`, texValue(impactSoftwareAbs, 5))}
+              ${formulaLine("规范参考冲击系数", "\\mu_0=\\text{规范参考值}", Number.isFinite(fAvg) ? `${fmt(fAvg, 2)}\\,\\mathrm{Hz}>14\\,\\mathrm{Hz}` : "\\text{按课堂参考值}", fmt(normImpact, 3))}
+              ${formulaLine("动力放大系数", "1+\\mu_0", `1+${fmt(normImpact, 3)}`, fmt(1 + normImpact, 3))}
+              ${formulaLine("与规范参考差值", "\\Delta\\mu=\\mu_{s,abs}-\\mu_0", `${texValue(impactSoftwareAbs, 5)}-${fmt(normImpact, 3)}`, Number.isFinite(impactNormDiff) ? fmt(impactNormDiff, 3) : "\\text{待输入}")}
+              ${noteBlock("本次记录中未单独给出动响应峰值 yd 和静响应值 ys，因此不再强行用 μ=yd/ys 手算；报告采用采集软件读得的冲击系数作为实测值。软件值为负号时表示响应方向或软件取值约定，进行幅值比较时取其绝对值。")}
+            </div>`)
         : "待输入动响应峰值、静响应值或软件冲击系数。");
       setResultHtml("bridgeThink4", `<div class="formula-output">
         ${formulaLine("阻尼比平均值", "\\bar\\xi=\\frac{\\sum\\xi_i}{n}", `\\frac{${dampings.length ? texSum(dampings, 3) : "\\cdots"}}{${dampings.length || "n"}}`, Number.isFinite(dampingAvg) ? `${fmt(dampingAvg, 3)}\\%` : "\\text{待输入}")}
@@ -2241,15 +2262,17 @@
           setValue(`bridge_strain_support_${i}`, [-14, 11, 4][i], "bridge");
           setValue(`bridge_defl_q_out_${i}`, [-0.282, -0.581, -0.911][i], "bridge");
           setValue(`bridge_defl_q_in_${i}`, [-0.252, -0.595, -0.668][i], "bridge");
-          setValue(`dyn_strain_1_${i}`, [-4.64, -4.03, -5.00][i], "bridge");
-          setValue(`dyn_strain_2_${i}`, [4.554, -2.51, 4.10][i], "bridge");
-          setValue(`dyn_defl_a_${i}`, [0.004, -0.058, -0.052][i], "bridge");
-          setValue(`dyn_defl_b_${i}`, [-0.048, -0.105, -0.094][i], "bridge");
+          setValue(`dyn_strain_1_${i}`, [-4.41, -4.03, -5.00][i], "bridge");
+          setValue(`dyn_strain_2_${i}`, [4.64, -2.51, 4.10][i], "bridge");
+          setValue(`dyn_defl_a_${i}`, [-0.054, -0.068, -0.052][i], "bridge");
+          setValue(`dyn_defl_b_${i}`, [-0.098, -0.105, -0.094][i], "bridge");
           setValue(`dyn_freq_${i}`, [16.375, 16.375, 16.375][i], "bridge");
           setValue(`dyn_damping_${i}`, [0.522, 0.522, 0.522][i], "bridge");
         });
+        setValue("dyn_theory_freq", 18.49, "bridge");
+        setValue("dyn_norm_impact", 0.45, "bridge");
         setValue("dyn_impact_software", -0.22406, "bridge");
-        setValue("timeSeries", "0,-1.4\n1,-1.8\n2,-1.5\n3,-1.0\n4,-1.8\n4.3,-4.64\n4.6,4.554\n5,-2.2\n6,-1.7\n7.6,-4.03\n7.9,-2.51\n9.6,-3.2\n10.2,-5.00\n10.7,4.10\n12,-3.8", "bridge");
+        setValue("timeSeries", "0,-1.4\n1,-1.8\n2,-1.5\n3,-1.0\n4,-1.8\n4.3,-4.41\n4.6,4.64\n5,-2.2\n6,-1.7\n7.6,-4.03\n7.9,-2.51\n9.6,-3.2\n10.2,-5.00\n10.7,4.10\n12,-3.8", "bridge");
         setValue("fftSeries", "0,0\n5,0.4\n10,0.6\n14,2.4\n16.375,11.0\n18,8.0\n21,1.2\n32,1.1\n50,0.8\n65,0.5\n82,0.4\n100,0.2\n120,0.1", "bridge");
       }
       calculate(id);
